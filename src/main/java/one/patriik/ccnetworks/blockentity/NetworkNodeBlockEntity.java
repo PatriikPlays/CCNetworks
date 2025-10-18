@@ -13,12 +13,16 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import one.patriik.ccnetworks.Registration;
+import one.patriik.ccnetworks.network.CableNetwork;
+import one.patriik.ccnetworks.network.CableNetworkManager;
+import one.patriik.ccnetworks.network.CableNetworkNode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 public class NetworkNodeBlockEntity extends BlockEntity {
     public NetworkNodeBlockEntity(BlockPos pos, BlockState blockState) {
@@ -26,6 +30,7 @@ public class NetworkNodeBlockEntity extends BlockEntity {
     }
 
     final List<BlockPos> links = new ArrayList<>();
+    //public UUID networkUUID = UUID.randomUUID();
 
     @Override
     public void load(CompoundTag nbt) {
@@ -41,6 +46,24 @@ public class NetworkNodeBlockEntity extends BlockEntity {
                 }
             }
         }
+
+        if (!CableNetworkManager.networkNodeMap.containsKey(this.getBlockPos())) {
+            CableNetworkManager.createNode(CableNetworkManager.newNetwork(), this.getBlockPos());
+        }
+
+/*        if (nbt.hasUUID("network")) {
+            networkUUID = nbt.getUUID("network");
+        }
+
+        CableNetwork network;
+
+        if (!CableNetworks.networks.containsKey(networkUUID)) {
+            network = new CableNetwork(networkUUID);
+            network.nodes.put(this.getBlockPos(), new CableNetworkNode(this.getBlockPos(), network));
+        } else {
+            network = CableNetworks.networks.get(networkUUID);
+        }
+*/
     }
 
     @Override
@@ -53,9 +76,18 @@ public class NetworkNodeBlockEntity extends BlockEntity {
             list.add(new IntArrayTag(arr));
         }
         nbt.put("links", list);
+        //nbt.putUUID("network", networkUUID);
     }
 
-    public List<BlockPos> getLinks() {
+    public CableNetworkNode getNetworkNode() {
+        return CableNetworkManager.networkNodeMap.get(this.getBlockPos());
+    }
+
+    public CableNetwork getNetwork() {
+        return CableNetworkManager.networkNodeMap.get(this.getBlockPos()).parentNetwork;
+    }
+
+    public final List<BlockPos> getLinks() {
         return Collections.unmodifiableList(links);
     }
 

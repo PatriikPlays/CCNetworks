@@ -50,4 +50,14 @@ public class NetworkNodeBlockEntityRenderer implements BlockEntityRenderer<Netwo
             poseStack.popPose();
         }
     }
+
+    @Override
+    public boolean shouldRenderOffScreen(NetworkNodeBlockEntity blockEntity) {
+        return true;
+    }
+
+    @Override
+    public int getViewDistance() {
+        return 128;
+    }
 }

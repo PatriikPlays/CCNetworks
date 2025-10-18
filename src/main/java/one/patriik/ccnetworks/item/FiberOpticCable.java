@@ -1,6 +1,5 @@
 package one.patriik.ccnetworks.item;
 
-import net.fabricmc.fabric.api.util.NbtType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -14,9 +13,9 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.BlockHitResult;
 import one.patriik.ccnetworks.Registration;
 import one.patriik.ccnetworks.blockentity.NetworkNodeBlockEntity;
+import one.patriik.ccnetworks.network.CableNetworkManager;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -35,9 +34,7 @@ public class FiberOpticCable extends Item {
                 CompoundTag tag = stack.getOrCreateTag();
 
                 tag.remove("pos1");
-                tag.remove("pos2");
-
-                stack.save(tag);
+                tag.remove("pos1dim");
 
                 player.sendSystemMessage(Component.literal("Selection cleared"));
                 return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
@@ -59,98 +56,94 @@ public class FiberOpticCable extends Item {
 
         if (block.is(Registration.ModBlocks.NETWORK_NODE) && be instanceof NetworkNodeBlockEntity nodeBE) {
             if (!level.isClientSide) {
-                List<BlockPos> nodeLinks = nodeBE.getLinks();
+//                CableNetworks.scanNetwork(nodeBE);
 
-                /*
-                if (nodeLinks.size() >= 2) {
-                    if (player != null) player.sendSystemMessage(Component.literal("This node already has 2 links"));
-                    return InteractionResult.FAIL;
-                }*/
+                List<BlockPos> nodeLinks = nodeBE.getLinks();
 
                 CompoundTag tag = stack.getOrCreateTag();
                 boolean hasPos1 = tag.contains("pos1", CompoundTag.TAG_INT_ARRAY) && tag.getIntArray("pos1").length >= 3;
-                boolean hasPos2 = tag.contains("pos2", CompoundTag.TAG_INT_ARRAY) && tag.getIntArray("pos2").length >= 3;
+                boolean hasPos1Dim = tag.contains("pos1dim", CompoundTag.TAG_STRING);
 
-                if (hasPos1 && hasPos2) { // link
+                if ((hasPos1 || hasPos1Dim) && !(hasPos1 && hasPos1Dim)) {
+                    if (player != null) player.sendSystemMessage(Component.literal("Failed to link"));
                     tag.remove("pos1");
-                    tag.remove("pos2");
-                } else if (hasPos1) {
-                    tag.putIntArray("pos2", new int[]{pos.getX(), pos.getY(), pos.getZ()});
-                } else if (hasPos2) {
-                    tag.putIntArray("pos1", new int[]{pos.getX(), pos.getY(), pos.getZ()});
-                } else { // nothing linked yet
-                    tag.putIntArray("pos1", new int[]{pos.getX(), pos.getY(), pos.getZ()});
-                }
-
-                hasPos1 = tag.contains("pos1", CompoundTag.TAG_INT_ARRAY) && tag.getIntArray("pos1").length >= 3;
-                hasPos2 = tag.contains("pos2", CompoundTag.TAG_INT_ARRAY) && tag.getIntArray("pos2").length >= 3;
-
-                if (hasPos1 && hasPos2) {
+                    tag.remove("pos1dim");
+                } else if (hasPos1 && hasPos1Dim) { // link now
                     int[] pos1Array = tag.getIntArray("pos1");
-                    int[] pos2Array = tag.getIntArray("pos2");
                     BlockPos pos1 = new BlockPos(pos1Array[0], pos1Array[1], pos1Array[2]);
-                    BlockPos pos2 = new BlockPos(pos2Array[0], pos2Array[1], pos2Array[2]);
+                    BlockPos pos2 = nodeBE.getBlockPos();
 
                     if (pos1.equals(pos2)) {
                         if (player != null) player.sendSystemMessage(Component.literal("Failed to link: cannot link to itself"));
                         tag.remove("pos1");
-                        tag.remove("pos2");
+                        tag.remove("pos1dim");
                         return InteractionResult.sidedSuccess(level.isClientSide);
                     }
 
-                    if (!level.isLoaded(pos1) || !level.isLoaded(pos2)) {
+                    if (!tag.getString("pos1dim").equals(level.dimension().location().toString())) {
+                        if (player != null) player.sendSystemMessage(Component.literal("Failed to link: cannot link across dimensions"));
+                        tag.remove("pos1");
+                        tag.remove("pos1dim");
+                        return InteractionResult.sidedSuccess(level.isClientSide);
+                    }
+
+                    if (!level.isLoaded(pos1) || !level.isLoaded(be.getBlockPos())) {
                         if (player != null) player.sendSystemMessage(Component.literal("Failed to link: one node isn't loaded"));
                         tag.remove("pos1");
-                        tag.remove("pos2");
+                        tag.remove("pos1dim");
                         return InteractionResult.sidedSuccess(level.isClientSide);
                     }
 
                     BlockEntity be1 = level.getBlockEntity(pos1);
-                    BlockEntity be2 = level.getBlockEntity(pos2);
 
-                    if (be1 instanceof NetworkNodeBlockEntity nodeBE1 && be2 instanceof NetworkNodeBlockEntity nodeBE2) {
+                    if (be1 instanceof NetworkNodeBlockEntity nodeBE1) {
                         List<BlockPos> links1 = nodeBE1.getLinks();
-                        List<BlockPos> links2 = nodeBE2.getLinks();
+                        List<BlockPos> links2 = nodeBE.getLinks();
 
-                        //todo: check if already exists, if yes, unlink
                         if (links1.contains(pos2) && links2.contains(pos1)) {
                             if (player != null) player.sendSystemMessage(Component.literal("Unlinked successfully"));
                             nodeBE1.removeLink(pos2);
-                            nodeBE2.removeLink(pos1);
+                            nodeBE.removeLink(pos1);
+                            CableNetworkManager.unlinkNodes(nodeBE.getNetworkNode(), nodeBE1.getNetworkNode());
                             tag.remove("pos1");
-                            tag.remove("pos2");
+                            tag.remove("pos1dim");
                             return InteractionResult.sidedSuccess(level.isClientSide);
                         } else if (links1.contains(pos1) && links2.contains(pos2)) {
                             if (player != null) player.sendSystemMessage(Component.literal("Unlinked successfully"));
                             nodeBE1.removeLink(pos1);
-                            nodeBE1.removeLink(pos2);
+                            nodeBE.removeLink(pos2);
+                            CableNetworkManager.unlinkNodes(nodeBE.getNetworkNode(), nodeBE1.getNetworkNode());
                             tag.remove("pos1");
-                            tag.remove("pos2");
+                            tag.remove("pos1dim");
                             return InteractionResult.sidedSuccess(level.isClientSide);
                         }
 
-                        if (links1.size() >= 2 || links2.size() >= 2) {
-                            if (player != null) player.sendSystemMessage(Component.literal("Failed to link: one or more positions already has 2 links"));
+                        if (links1.size() >= 4 || links2.size() >= 4) {
+                            if (player != null) player.sendSystemMessage(Component.literal("Failed to link: one or more nodes already have 4 links"));
                             tag.remove("pos1");
-                            tag.remove("pos2");
+                            tag.remove("pos1dim");
                             return InteractionResult.sidedSuccess(level.isClientSide);
                         }
 
                         nodeBE1.addLink(pos2);
-                        nodeBE2.addLink(pos1);
+                        nodeBE.addLink(pos1);
+                        //CableNetworkManager.joinNetwork(nodeBE1.getNetwork(), nodeBE.getNetwork());
+                        CableNetworkManager.connectNodes(nodeBE1.getNetworkNode(), nodeBE.getNetworkNode());
                         tag.remove("pos1");
-                        tag.remove("pos2");
+                        tag.remove("pos1dim");
                         if (player != null) player.sendSystemMessage(Component.literal("Linked successfully"));
                         return InteractionResult.sidedSuccess(level.isClientSide);
                     } else {
                         if (player != null) player.sendSystemMessage(Component.literal("Failed to link: one position isn't a valid NetworkNodeBlockEntity or doesn't exist anymore"));
                         tag.remove("pos1");
-                        tag.remove("pos2");
+                        tag.remove("pos1dim");
                         return InteractionResult.sidedSuccess(level.isClientSide);
                     }
+                } else { // nothing linked yet
+                    tag.putIntArray("pos1", new int[]{pos.getX(), pos.getY(), pos.getZ()});
+                    tag.putString("pos1dim", level.dimension().location().toString());
                 }
 
-                stack.save(tag);
             }
             return InteractionResult.sidedSuccess(level.isClientSide);
         }
@@ -162,9 +155,8 @@ public class FiberOpticCable extends Item {
     public boolean isFoil(ItemStack stack) {
         CompoundTag tag = stack.getOrCreateTag();
         boolean hasPos1 = tag.contains("pos1", CompoundTag.TAG_INT_ARRAY) && tag.getIntArray("pos1").length >= 3;
-        boolean hasPos2 = tag.contains("pos1", CompoundTag.TAG_INT_ARRAY) && tag.getIntArray("pos1").length >= 3;
 
-        if (hasPos1 || hasPos2) {
+        if (hasPos1) {
             return true;
         }
 
