@@ -27,7 +27,7 @@ public class CableNetworkManager {
 
     public static void connectNodes(CableNetworkNode nodeA, CableNetworkNode nodeB) {
         if (nodeA.pos.equals(nodeB.pos)) {
-            CCNetworks.LOGGER.warning("Tried to connect node to itself");
+            CCNetworks.LOGGER.warn("Tried to connect node to itself");
         }
 
         if (nodeA.parentNetwork.uuid != nodeB.parentNetwork.uuid) {
@@ -35,10 +35,10 @@ public class CableNetworkManager {
         }
 
         if (nodeA.connections.contains(nodeB) && nodeB.connections.contains(nodeA)) {
-            CCNetworks.LOGGER.warning("Tried to connect nodes that were already connected");
+            CCNetworks.LOGGER.warn("Tried to connect nodes that were already connected");
             return;
         } else if (nodeA.connections.contains(nodeB) || nodeB.connections.contains(nodeA)) {
-            CCNetworks.LOGGER.warning("Invalid state: one node thinks its connected while other one isnt");
+            CCNetworks.LOGGER.warn("Invalid state: one node thinks its connected while other one isnt");
         }
 
         nodeA.connections.add(nodeB);
