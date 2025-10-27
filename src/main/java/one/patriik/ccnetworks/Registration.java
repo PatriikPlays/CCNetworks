@@ -1,5 +1,7 @@
 package one.patriik.ccnetworks;
 
+import dan200.computercraft.api.peripheral.PeripheralLookup;
+import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -8,12 +10,17 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 import one.patriik.ccnetworks.block.NetworkNodeBlock;
 import one.patriik.ccnetworks.blockentity.NetworkNodeBlockEntity;
 import one.patriik.ccnetworks.item.FiberOpticCable;
+import one.patriik.ccnetworks.peripherals.NetworkNodePeripheral;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.function.BiFunction;
 
 public final class Registration {
     public static final class ModBlockEntities {
@@ -64,11 +71,19 @@ public final class Registration {
         public static void init() {}
     }
 
+    public static final class ModPeripherals {
+        public static void init() {
+            var peripherals = PeripheralLookup.get();
+            peripherals.registerForBlockEntity((b, s) -> b.getPeripheral(), ModBlockEntities.NETWORK_NODE);
+        }
+    }
+
 
     public static void init() {
         ModBlockEntities.init();
         ModBlocks.init();
         ModItems.init();
+        ModPeripherals.init();
     }
 }
 

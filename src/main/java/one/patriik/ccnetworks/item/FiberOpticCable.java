@@ -16,6 +16,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import one.patriik.ccnetworks.Registration;
 import one.patriik.ccnetworks.blockentity.NetworkNodeBlockEntity;
 import one.patriik.ccnetworks.network.CableNetworkManager;
+import one.patriik.ccnetworks.network.CableNetworkNode;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -56,10 +57,6 @@ public class FiberOpticCable extends Item {
 
         if (block.is(Registration.ModBlocks.NETWORK_NODE) && be instanceof NetworkNodeBlockEntity nodeBE) {
             if (!level.isClientSide) {
-//                CableNetworks.scanNetwork(nodeBE);
-
-                List<BlockPos> nodeLinks = nodeBE.getLinks();
-
                 CompoundTag tag = stack.getOrCreateTag();
                 boolean hasPos1 = tag.contains("pos1", CompoundTag.TAG_INT_ARRAY) && tag.getIntArray("pos1").length >= 3;
                 boolean hasPos1Dim = tag.contains("pos1dim", CompoundTag.TAG_STRING);
@@ -97,18 +94,27 @@ public class FiberOpticCable extends Item {
                     BlockEntity be1 = level.getBlockEntity(pos1);
 
                     if (be1 instanceof NetworkNodeBlockEntity nodeBE1) {
-                        List<BlockPos> links1 = nodeBE1.getLinks();
-                        List<BlockPos> links2 = nodeBE.getLinks();
+                        CableNetworkManager nm = nodeBE1.getCableNetworkManager();
+                        if (nm != nodeBE.getCableNetworkManager()) {
+                            throw new IllegalStateException("Two nodes in the same dimension don't have the same network manager");
+                        }
+                        CableNetworkNode node1 = nodeBE1.getNetworkNode();
+                        CableNetworkNode node2 = nodeBE.getNetworkNode();
+                        List<CableNetworkNode> links1 = node1.connections;
+                        List<CableNetworkNode> links2 = node2.connections;
 
-                        if (links1.contains(pos2) && links2.contains(pos1)) {
+                        if (links1.contains(node2) && links2.contains(node1)) {
                             if (player != null) player.sendSystemMessage(Component.literal("Unlinked successfully"));
-                            nodeBE1.removeLink(pos2);
-                            nodeBE.removeLink(pos1);
-                            CableNetworkManager.unlinkNodes(nodeBE.getNetworkNode(), nodeBE1.getNetworkNode());
+
+                            nm.unlinkNodes(node1, node2);
+                            nodeBE.update();
+                            nodeBE1.update();
                             tag.remove("pos1");
                             tag.remove("pos1dim");
                             return InteractionResult.sidedSuccess(level.isClientSide);
-                        } else if (links1.contains(pos1) && links2.contains(pos2)) {
+                        }
+                        // this seems like nonsense, why did i do this
+                        /* else if (links1.contains(pos1) && links2.contains(pos2)) {
                             if (player != null) player.sendSystemMessage(Component.literal("Unlinked successfully"));
                             nodeBE1.removeLink(pos1);
                             nodeBE.removeLink(pos2);
@@ -116,7 +122,7 @@ public class FiberOpticCable extends Item {
                             tag.remove("pos1");
                             tag.remove("pos1dim");
                             return InteractionResult.sidedSuccess(level.isClientSide);
-                        }
+                        }*/
 
                         if (links1.size() >= 4 || links2.size() >= 4) {
                             if (player != null) player.sendSystemMessage(Component.literal("Failed to link: one or more nodes already have 4 links"));
@@ -125,10 +131,9 @@ public class FiberOpticCable extends Item {
                             return InteractionResult.sidedSuccess(level.isClientSide);
                         }
 
-                        nodeBE1.addLink(pos2);
-                        nodeBE.addLink(pos1);
-                        //CableNetworkManager.joinNetwork(nodeBE1.getNetwork(), nodeBE.getNetwork());
-                        CableNetworkManager.connectNodes(nodeBE1.getNetworkNode(), nodeBE.getNetworkNode());
+                        nm.connectNodes(node1, node2);
+                        nodeBE.update();
+                        nodeBE1.update();
                         tag.remove("pos1");
                         tag.remove("pos1dim");
                         if (player != null) player.sendSystemMessage(Component.literal("Linked successfully"));

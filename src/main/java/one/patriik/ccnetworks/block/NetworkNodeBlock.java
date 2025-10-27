@@ -1,19 +1,21 @@
 package one.patriik.ccnetworks.block;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.DirectionalBlock;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import one.patriik.ccnetworks.blockentity.NetworkNodeBlockEntity;
 import one.patriik.ccnetworks.network.CableNetworkManager;
+import one.patriik.ccnetworks.network.CableNetworkNode;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class NetworkNodeBlock extends DirectionalBlock implements EntityBlock {
     public NetworkNodeBlock(Properties properties) {
@@ -43,11 +45,23 @@ public class NetworkNodeBlock extends DirectionalBlock implements EntityBlock {
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
         BlockEntity be = level.getBlockEntity(pos);
         if (be instanceof NetworkNodeBlockEntity nodeBE) {
-            nodeBE.cleanupConnectedNodes();;
+            if (!level.isClientSide) {
+                List<CableNetworkNode> connections = nodeBE.getNetworkNode().connections;
+                List<BlockPos> connectionPosList = new ArrayList<>();
+                for (CableNetworkNode node : connections) {
+                    connectionPosList.add(node.pos);
+                }
 
-            nodeBE.removeAllLinks(); // i think this is needed in case it gets moved by piston
+                nodeBE.getCableNetworkManager().removeNode(nodeBE.getNetworkNode());
 
-            CableNetworkManager.removeNode(nodeBE.getNetworkNode());
+                for (BlockPos p : connectionPosList) {
+                    BlockEntity connectionBE = level.getBlockEntity(p);
+                    if (connectionBE instanceof NetworkNodeBlockEntity connectionNodeBE) {
+                        connectionNodeBE.update();
+                    }
+                }
+
+            }
         }
 
         super.onRemove(state, level, pos, newState, movedByPiston);

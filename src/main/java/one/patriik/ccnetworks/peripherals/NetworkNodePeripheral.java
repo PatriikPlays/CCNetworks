@@ -4,7 +4,9 @@ import dan200.computercraft.api.lua.LuaFunction;
 import dan200.computercraft.api.peripheral.AttachedComputerSet;
 import dan200.computercraft.api.peripheral.IComputerAccess;
 import dan200.computercraft.api.peripheral.IPeripheral;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import one.patriik.ccnetworks.blockentity.NetworkNodeBlockEntity;
+import one.patriik.ccnetworks.network.CableNetworkNode;
 import org.jspecify.annotations.Nullable;
 
 public class NetworkNodePeripheral implements IPeripheral {
@@ -35,8 +37,19 @@ public class NetworkNodePeripheral implements IPeripheral {
         computers.remove(computer);
     }
 
-    @LuaFunction(mainThread = true)
-    public final void send(int channel, String data) {
+    public void receiveMessage(String data) {
+        computers.forEach(computer -> computer.queueEvent("optic_network_message", computer.getAttachmentName(), data));
+    }
 
+    @LuaFunction(mainThread = true)
+    public final void send(String data) { // FIXME: this seems bad, it checks all nodes, i should implement some sort of end node thing
+        for (CableNetworkNode node : networkNode.getNetwork().nodes.values()) {
+            if (!node.pos.equals(networkNode.getBlockPos()) && networkNode.getLevel() != null) {
+                BlockEntity be = networkNode.getLevel().getBlockEntity(node.pos);
+                if (be instanceof NetworkNodeBlockEntity nodeBE) {
+                    nodeBE.sendMessageToPeripheral(data);
+                }
+            }
+        }
     }
 }

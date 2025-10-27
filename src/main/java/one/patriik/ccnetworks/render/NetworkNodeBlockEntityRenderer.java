@@ -21,7 +21,7 @@ public class NetworkNodeBlockEntityRenderer implements BlockEntityRenderer<Netwo
 
     @Override
     public void render(NetworkNodeBlockEntity blockEntity, float partialTick, PoseStack poseStack, MultiBufferSource buffer, int packedLight, int packedOverlay) {
-        List<BlockPos> links = blockEntity.getLinks();
+        List<BlockPos> links = blockEntity.getRenderLinks();
         BlockPos pos = blockEntity.getBlockPos();
 
         for (BlockPos link : links) {

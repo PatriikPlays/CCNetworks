@@ -17,7 +17,9 @@ public class CableNetworkWorldSavedData extends SavedData {
     }
 
     private CableNetworkWorldSavedData(CompoundTag nbt) {
-        setData(nbt);
+        if (nbt.contains("data")) {
+            this.data = nbt.getCompound("data");
+        }
     }
 
     public void setData(CompoundTag newData) {
@@ -45,6 +47,7 @@ public class CableNetworkWorldSavedData extends SavedData {
 
     @Override
     public @NotNull CompoundTag save(CompoundTag compoundTag) {
-        return data;
+        compoundTag.put("data", data.copy());
+        return compoundTag;
     }
 }
