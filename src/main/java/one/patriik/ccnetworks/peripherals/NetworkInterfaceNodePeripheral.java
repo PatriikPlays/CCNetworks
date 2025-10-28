@@ -5,15 +5,15 @@ import dan200.computercraft.api.peripheral.AttachedComputerSet;
 import dan200.computercraft.api.peripheral.IComputerAccess;
 import dan200.computercraft.api.peripheral.IPeripheral;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import one.patriik.ccnetworks.blockentity.NetworkNodeBlockEntity;
+import one.patriik.ccnetworks.blockentity.NetworkInterfaceNodeBlockEntity;
 import one.patriik.ccnetworks.network.CableNetworkNode;
 import org.jspecify.annotations.Nullable;
 
-public class NetworkNodePeripheral implements IPeripheral {
-    private final NetworkNodeBlockEntity networkNode;
+public class NetworkInterfaceNodePeripheral implements IPeripheral {
+    private final NetworkInterfaceNodeBlockEntity networkNode;
     private final AttachedComputerSet computers = new AttachedComputerSet();
 
-    public NetworkNodePeripheral(NetworkNodeBlockEntity networkNode) {
+    public NetworkInterfaceNodePeripheral(NetworkInterfaceNodeBlockEntity networkNode) {
         this.networkNode = networkNode;
     }
 
@@ -24,7 +24,7 @@ public class NetworkNodePeripheral implements IPeripheral {
 
     @Override
     public boolean equals(@Nullable IPeripheral other) {
-        return other instanceof NetworkNodePeripheral node && networkNode == node.networkNode;
+        return other instanceof NetworkInterfaceNodePeripheral node && networkNode == node.networkNode;
     }
 
     @Override
@@ -46,7 +46,7 @@ public class NetworkNodePeripheral implements IPeripheral {
         for (CableNetworkNode node : networkNode.getNetwork().nodes.values()) {
             if (!node.pos.equals(networkNode.getBlockPos()) && networkNode.getLevel() != null) {
                 BlockEntity be = networkNode.getLevel().getBlockEntity(node.pos);
-                if (be instanceof NetworkNodeBlockEntity nodeBE) {
+                if (be instanceof NetworkInterfaceNodeBlockEntity nodeBE) {
                     nodeBE.sendMessageToPeripheral(data);
                 }
             }

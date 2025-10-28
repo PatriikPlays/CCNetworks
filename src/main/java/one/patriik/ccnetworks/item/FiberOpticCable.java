@@ -14,7 +14,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import one.patriik.ccnetworks.Registration;
-import one.patriik.ccnetworks.blockentity.NetworkNodeBlockEntity;
+import one.patriik.ccnetworks.blockentity.AbstractNetworkNodeBlockEntity;
 import one.patriik.ccnetworks.network.CableNetworkManager;
 import one.patriik.ccnetworks.network.CableNetworkNode;
 import org.jetbrains.annotations.NotNull;
@@ -30,7 +30,7 @@ public class FiberOpticCable extends Item {
     public @NotNull InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand usedHand) {
         ItemStack stack = player.getItemInHand(usedHand);
 
-        if (!level.isClientSide) {
+        if (!level.isClientSide()) {
             if (player.isShiftKeyDown()) {
                 CompoundTag tag = stack.getOrCreateTag();
 
@@ -38,7 +38,7 @@ public class FiberOpticCable extends Item {
                 tag.remove("pos1dim");
 
                 player.sendSystemMessage(Component.literal("Selection cleared"));
-                return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
+                return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
             }
         }
 
@@ -52,11 +52,10 @@ public class FiberOpticCable extends Item {
         Player player = context.getPlayer();
         ItemStack stack = context.getItemInHand();
 
-        BlockState block = level.getBlockState(pos);
         BlockEntity be = level.getBlockEntity(pos);
 
-        if (block.is(Registration.ModBlocks.NETWORK_NODE) && be instanceof NetworkNodeBlockEntity nodeBE) {
-            if (!level.isClientSide) {
+        if (be instanceof AbstractNetworkNodeBlockEntity nodeBE) {
+            if (!level.isClientSide()) {
                 CompoundTag tag = stack.getOrCreateTag();
                 boolean hasPos1 = tag.contains("pos1", CompoundTag.TAG_INT_ARRAY) && tag.getIntArray("pos1").length >= 3;
                 boolean hasPos1Dim = tag.contains("pos1dim", CompoundTag.TAG_STRING);
@@ -74,26 +73,26 @@ public class FiberOpticCable extends Item {
                         if (player != null) player.sendSystemMessage(Component.literal("Failed to link: cannot link to itself"));
                         tag.remove("pos1");
                         tag.remove("pos1dim");
-                        return InteractionResult.sidedSuccess(level.isClientSide);
+                        return InteractionResult.sidedSuccess(level.isClientSide());
                     }
 
                     if (!tag.getString("pos1dim").equals(level.dimension().location().toString())) {
                         if (player != null) player.sendSystemMessage(Component.literal("Failed to link: cannot link across dimensions"));
                         tag.remove("pos1");
                         tag.remove("pos1dim");
-                        return InteractionResult.sidedSuccess(level.isClientSide);
+                        return InteractionResult.sidedSuccess(level.isClientSide());
                     }
 
                     if (!level.isLoaded(pos1) || !level.isLoaded(be.getBlockPos())) {
                         if (player != null) player.sendSystemMessage(Component.literal("Failed to link: one node isn't loaded"));
                         tag.remove("pos1");
                         tag.remove("pos1dim");
-                        return InteractionResult.sidedSuccess(level.isClientSide);
+                        return InteractionResult.sidedSuccess(level.isClientSide());
                     }
 
                     BlockEntity be1 = level.getBlockEntity(pos1);
 
-                    if (be1 instanceof NetworkNodeBlockEntity nodeBE1) {
+                    if (be1 instanceof AbstractNetworkNodeBlockEntity nodeBE1) {
                         CableNetworkManager nm = nodeBE1.getCableNetworkManager();
                         if (nm != nodeBE.getCableNetworkManager()) {
                             throw new IllegalStateException("Two nodes in the same dimension don't have the same network manager");
@@ -111,7 +110,7 @@ public class FiberOpticCable extends Item {
                             nodeBE1.update();
                             tag.remove("pos1");
                             tag.remove("pos1dim");
-                            return InteractionResult.sidedSuccess(level.isClientSide);
+                            return InteractionResult.sidedSuccess(level.isClientSide());
                         }
                         // this seems like nonsense, why did i do this
                         /* else if (links1.contains(pos1) && links2.contains(pos2)) {
@@ -121,14 +120,14 @@ public class FiberOpticCable extends Item {
                             CableNetworkManager.unlinkNodes(nodeBE.getNetworkNode(), nodeBE1.getNetworkNode());
                             tag.remove("pos1");
                             tag.remove("pos1dim");
-                            return InteractionResult.sidedSuccess(level.isClientSide);
+                            return InteractionResult.sidedSuccess(level.isClientSide());
                         }*/
 
                         if (links1.size() >= 4 || links2.size() >= 4) {
                             if (player != null) player.sendSystemMessage(Component.literal("Failed to link: one or more nodes already have 4 links"));
                             tag.remove("pos1");
                             tag.remove("pos1dim");
-                            return InteractionResult.sidedSuccess(level.isClientSide);
+                            return InteractionResult.sidedSuccess(level.isClientSide());
                         }
 
                         nm.connectNodes(node1, node2);
@@ -137,12 +136,12 @@ public class FiberOpticCable extends Item {
                         tag.remove("pos1");
                         tag.remove("pos1dim");
                         if (player != null) player.sendSystemMessage(Component.literal("Linked successfully"));
-                        return InteractionResult.sidedSuccess(level.isClientSide);
+                        return InteractionResult.sidedSuccess(level.isClientSide());
                     } else {
-                        if (player != null) player.sendSystemMessage(Component.literal("Failed to link: one position isn't a valid NetworkNodeBlockEntity or doesn't exist anymore"));
+                        if (player != null) player.sendSystemMessage(Component.literal("Failed to link: one position isn't a valid AbstractNetworkNodeBlockEntity or doesn't exist anymore"));
                         tag.remove("pos1");
                         tag.remove("pos1dim");
-                        return InteractionResult.sidedSuccess(level.isClientSide);
+                        return InteractionResult.sidedSuccess(level.isClientSide());
                     }
                 } else { // nothing linked yet
                     tag.putIntArray("pos1", new int[]{pos.getX(), pos.getY(), pos.getZ()});
@@ -150,7 +149,7 @@ public class FiberOpticCable extends Item {
                 }
 
             }
-            return InteractionResult.sidedSuccess(level.isClientSide);
+            return InteractionResult.sidedSuccess(level.isClientSide());
         }
 
         return InteractionResult.PASS;

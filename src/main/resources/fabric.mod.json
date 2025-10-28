@@ -11,7 +11,7 @@
   "environment": "*",
   "entrypoints": {
     "fabric-datagen": [
-      "one.patriik.ccnetworks.client.CCNetworksDataGenerator"
+      "one.patriik.ccnetworks.datagen.CCNetworksDataGenerator"
     ],
     "client": [
       "one.patriik.ccnetworks.client.CCNetworksClient"
