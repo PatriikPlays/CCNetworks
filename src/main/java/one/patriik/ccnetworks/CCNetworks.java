@@ -11,12 +11,15 @@ import one.patriik.ccnetworks.network.CableNetworkManager;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
 public class CCNetworks implements ModInitializer {
     public static String MOD_ID = "ccnetworks";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+
+    public static final CCNetworksConfig CONFIG = CCNetworksConfig.createToml(Paths.get("config"), "", "ccnetworks", CCNetworksConfig.class);
 
     public static Map<ResourceKey<Level>, CableNetworkManager> cableNetworkManagers = new HashMap<>();
 

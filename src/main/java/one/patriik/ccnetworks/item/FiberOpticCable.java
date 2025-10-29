@@ -15,6 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import one.patriik.ccnetworks.CCNetworks;
 import one.patriik.ccnetworks.Registration;
 import one.patriik.ccnetworks.blockentity.AbstractNetworkNodeBlockEntity;
 import one.patriik.ccnetworks.network.CableNetworkManager;
@@ -119,13 +120,13 @@ public class FiberOpticCable extends Item {
                             stack.setTag(null);
 
                             if (!player.isCreative()) { // todo: directly give into inventory if possible, figure out w
-                                double distUnsqrRound = Math.round(Math.sqrt(nodeBE1.getBlockPos().distSqr(nodeBE.getBlockPos())));
-                                while (distUnsqrRound > 0) {
-                                    int amt = (int) Math.min(64, distUnsqrRound);
+                                double distRound = Math.round(Math.sqrt(nodeBE1.getBlockPos().distSqr(nodeBE.getBlockPos())));
+                                while (distRound > 0) {
+                                    int amt = (int) Math.min(64, distRound);
 
                                     ItemEntity item = new ItemEntity(level, player.getX(), player.getY(), player.getZ(), new ItemStack(Registration.ModItems.FIBER_OPTIC_CABLE, amt));
                                     level.addFreshEntity(item);
-                                    distUnsqrRound -= amt;
+                                    distRound -= amt;
                                 }
                             }
 
@@ -140,18 +141,26 @@ public class FiberOpticCable extends Item {
                             return InteractionResult.sidedSuccess(level.isClientSide());
                         }
 
+                        double distRound = Math.round(Math.sqrt(nodeBE1.getBlockPos().distSqr(nodeBE.getBlockPos())));
                         if (!player.isCreative()) {
                             int count = stack.getCount();
-                            double distUnsqrRound = Math.round(Math.sqrt(nodeBE1.getBlockPos().distSqr(nodeBE.getBlockPos())));
-                            if (count >= distUnsqrRound) {
-                                stack.shrink((int)distUnsqrRound);
+                            if (count >= distRound) {
+                                stack.shrink((int)distRound);
                             } else {
-                                player.sendSystemMessage(Component.literal("Failed to link: not enough cables (costs "+distUnsqrRound+")"));
+                                player.sendSystemMessage(Component.literal("Failed to link: not enough cables (costs "+distRound+")"));
                                 tag.remove("pos1");
                                 tag.remove("pos1dim");
                                 stack.setTag(null);
                                 return InteractionResult.sidedSuccess(level.isClientSide());
                             }
+                        }
+                        
+                        if (distRound > CCNetworks.CONFIG.maxCableLength) {
+                            player.sendSystemMessage(Component.literal("Failed to link: cable too long, limit is "+CCNetworks.CONFIG.maxCableLength));
+                            tag.remove("pos1");
+                            tag.remove("pos1dim");
+                            stack.setTag(null);
+                            return InteractionResult.sidedSuccess(level.isClientSide());
                         }
 
                         nm.connectNodes(node1, node2);
