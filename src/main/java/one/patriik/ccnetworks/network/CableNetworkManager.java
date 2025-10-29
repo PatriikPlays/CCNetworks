@@ -39,10 +39,15 @@ public class CableNetworkManager {
             for (int j = 0; j < nodesList.size(); j++) {
                 CompoundTag nodeTag = nodesList.getCompound(j);
                 BlockPos pos = BlockPos.of(nodeTag.getLong("pos"));
+                boolean isInterfaceNode = nodeTag.getBoolean("isInterface");
 
-                CableNetworkNode node = new CableNetworkNode(pos, network);
+                CableNetworkNode node = new CableNetworkNode(pos, network, isInterfaceNode);
                 network.nodes.put(pos, node);
                 networkNodeMap.put(pos, node);
+
+                if (isInterfaceNode) {
+                    network.interfaceNodeCache.add(node);
+                }
             }
 
             // restore connections
@@ -77,6 +82,7 @@ public class CableNetworkManager {
             for (CableNetworkNode node : network.nodes.values()) {
                 CompoundTag nodeTag = new CompoundTag();
                 nodeTag.putLong("pos", node.pos.asLong());
+                nodeTag.putBoolean("isInterface", node.isInterfaceNode);
 
                 List<Long> connections = new ArrayList<>();
                 for (CableNetworkNode connection : node.connections) {
@@ -94,6 +100,13 @@ public class CableNetworkManager {
         savedData.setData(tag); // marks it dirty automatically
     }
 
+    public void setIsInterfaceNode(CableNetworkNode node, boolean isInterfaceNode) {
+        if (node != null) {
+            node.isInterfaceNode = isInterfaceNode;
+            saveToSavedData();
+        }
+    }
+
     public CableNetworkNode getNodeAt(BlockPos pos) {
         return networkNodeMap.get(pos);
     }
@@ -109,9 +122,10 @@ public class CableNetworkManager {
         return network;
     }
 
-    public CableNetworkNode createNode(CableNetwork network, BlockPos position) {
-        CableNetworkNode node = new CableNetworkNode(position, network);
+    public CableNetworkNode createNode(CableNetwork network, BlockPos position, boolean isInterface) {
+        CableNetworkNode node = new CableNetworkNode(position, network, isInterface);
         network.nodes.put(position, node);
+        network.interfaceNodeCache.add(node);
         networkNodeMap.put(position, node);
 
         saveToSavedData();
@@ -122,6 +136,7 @@ public class CableNetworkManager {
     public void connectNodes(CableNetworkNode nodeA, CableNetworkNode nodeB) {
         if (nodeA.pos.equals(nodeB.pos)) {
             CCNetworks.LOGGER.warn("Tried to connect node to itself");
+            return;
         }
 
         if (nodeA.parentNetwork.uuid != nodeB.parentNetwork.uuid) {
@@ -132,7 +147,9 @@ public class CableNetworkManager {
             CCNetworks.LOGGER.warn("Tried to connect nodes that were already connected");
             return;
         } else if (nodeA.connections.contains(nodeB) || nodeB.connections.contains(nodeA)) {
-            CCNetworks.LOGGER.warn("Invalid state: one node thinks its connected while other one isnt");
+            CCNetworks.LOGGER.warn("Invalid state: one node thinks its connected while other one isn't");
+            nodeA.connections.remove(nodeB);
+            nodeB.connections.remove(nodeA);
         }
 
         nodeA.connections.add(nodeB);
@@ -151,6 +168,9 @@ public class CableNetworkManager {
             networkThatWillKeepExisting.nodes.put(entry.getKey(), entry.getValue());
             networkNodeMap.remove(entry.getKey());
             networkNodeMap.put(entry.getKey(), entry.getValue());
+            if (entry.getValue().isInterfaceNode) {
+                networkThatWillKeepExisting.interfaceNodeCache.add(entry.getValue());
+            }
         }
 
         networkThatWillBeDestroyed.nodes.clear();
@@ -162,15 +182,18 @@ public class CableNetworkManager {
     public void removeNode(CableNetworkNode node) { // this can be optimized way better i think
         List<CableNetworkNode> neighbors = new ArrayList<>(node.connections);
 
+        // disconnect all connections
         for (CableNetworkNode connection : neighbors) {
             connection.connections.remove(node);
         }
         node.connections.clear();
 
+        // remove from nodes, remove network and return if empty
         node.parentNetwork.nodes.remove(node.pos);
         networkNodeMap.remove(node.pos);
         if (node.parentNetwork.nodes.isEmpty()) {
             networks.remove(node.parentNetwork.uuid);
+            saveToSavedData();
             return;
         }
 
@@ -199,7 +222,11 @@ public class CableNetworkManager {
                 n.parentNetwork = net;
                 net.nodes.put(n.pos, n);
             }
+
+            net.recomputeInterfaceNodeCache();
         }
+
+        // the original network should always be deleted unless i fucked something up, so no need to recompute that
 
         saveToSavedData();
     }
@@ -214,10 +241,18 @@ public class CableNetworkManager {
 
             for (CableNetworkNode n : bfsA) {
                 n.parentNetwork.nodes.remove(n.pos);
-                if (n.parentNetwork.nodes.isEmpty()) networks.remove(net.uuid);
+                if (n.parentNetwork.nodes.isEmpty()) networks.remove(n.parentNetwork.uuid);
                 n.parentNetwork = net;
                 net.nodes.put(n.pos, n);
             }
+        }
+
+        if (networks.containsKey(nodeA.parentNetwork.uuid)) {
+            networks.get(nodeA.parentNetwork.uuid).recomputeInterfaceNodeCache();
+        }
+
+        if (networks.containsKey(nodeB.parentNetwork.uuid)) {
+            networks.get(nodeB.parentNetwork.uuid).recomputeInterfaceNodeCache();
         }
 
         saveToSavedData();

@@ -53,11 +53,17 @@ public abstract class AbstractNetworkNodeBlockEntity extends BlockEntity {
 
         if (!level.isClientSide()) {
             if (this.getNetworkNode() == null) {
-                this.getCableNetworkManager().createNode(this.getCableNetworkManager().newNetwork(), this.getBlockPos());
+                this.getCableNetworkManager().createNode(this.getCableNetworkManager().newNetwork(), this.getBlockPos(), this.isInterfaceNode());
+            } else if (this.getNetworkNode().isInterfaceNode != this.isInterfaceNode()) {
+                this.getCableNetworkManager().setIsInterfaceNode(this.getNetworkNode(), isInterfaceNode());
             }
 
             updateLinks();
         }
+    }
+
+    protected boolean isInterfaceNode() {
+        return false;
     }
 
     public CableNetworkManager getCableNetworkManager() {

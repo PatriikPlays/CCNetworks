@@ -19,4 +19,9 @@ public class NetworkInterfaceNodeBlockEntity extends AbstractNetworkNodeBlockEnt
     public void sendMessageToPeripheral(String data) {
         peripheral.receiveMessage(data);
     }
+
+    @Override
+    protected boolean isInterfaceNode() {
+        return true;
+    }
 }

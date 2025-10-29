@@ -9,9 +9,12 @@ public class CableNetworkNode {
     @NonNull public final BlockPos pos;
     public List<CableNetworkNode> connections = new ArrayList<>(4);
     @NonNull public CableNetwork parentNetwork;
+    public
+    boolean isInterfaceNode;
 
-    public CableNetworkNode(@NonNull BlockPos pos, @NonNull CableNetwork parentNetwork) {
+    public CableNetworkNode(@NonNull BlockPos pos, @NonNull CableNetwork parentNetwork, boolean isInterfaceNode) {
         this.pos = pos;
         this.parentNetwork = parentNetwork;
+        this.isInterfaceNode = isInterfaceNode;
     }
 }
