@@ -1,17 +1,21 @@
 package one.patriik.ccnetworks.item;
 
+import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import one.patriik.ccnetworks.Registration;
 import one.patriik.ccnetworks.blockentity.AbstractNetworkNodeBlockEntity;
 import one.patriik.ccnetworks.network.CableNetworkManager;
 import one.patriik.ccnetworks.network.CableNetworkNode;
@@ -52,39 +56,43 @@ public class FiberOpticCable extends Item {
 
         BlockEntity be = level.getBlockEntity(pos);
 
-        if (be instanceof AbstractNetworkNodeBlockEntity nodeBE) {
+        if (be instanceof AbstractNetworkNodeBlockEntity nodeBE && player instanceof ServerPlayer && !(player instanceof FakePlayer)) { // todo: support turtles later?
             if (!level.isClientSide()) {
                 CompoundTag tag = stack.getOrCreateTag();
                 boolean hasPos1 = tag.contains("pos1", CompoundTag.TAG_INT_ARRAY) && tag.getIntArray("pos1").length >= 3;
                 boolean hasPos1Dim = tag.contains("pos1dim", CompoundTag.TAG_STRING);
 
                 if ((hasPos1 || hasPos1Dim) && !(hasPos1 && hasPos1Dim)) {
-                    if (player != null) player.sendSystemMessage(Component.literal("Failed to link"));
+                    player.sendSystemMessage(Component.literal("Failed to link"));
                     tag.remove("pos1");
                     tag.remove("pos1dim");
+                    stack.setTag(null);
                 } else if (hasPos1 && hasPos1Dim) { // link now
                     int[] pos1Array = tag.getIntArray("pos1");
                     BlockPos pos1 = new BlockPos(pos1Array[0], pos1Array[1], pos1Array[2]);
                     BlockPos pos2 = nodeBE.getBlockPos();
 
                     if (pos1.equals(pos2)) {
-                        if (player != null) player.sendSystemMessage(Component.literal("Failed to link: cannot link to itself"));
+                        player.sendSystemMessage(Component.literal("Failed to link: cannot link to itself"));
                         tag.remove("pos1");
                         tag.remove("pos1dim");
+                        stack.setTag(null);
                         return InteractionResult.sidedSuccess(level.isClientSide());
                     }
 
                     if (!tag.getString("pos1dim").equals(level.dimension().location().toString())) {
-                        if (player != null) player.sendSystemMessage(Component.literal("Failed to link: cannot link across dimensions"));
+                        player.sendSystemMessage(Component.literal("Failed to link: cannot link across dimensions"));
                         tag.remove("pos1");
                         tag.remove("pos1dim");
+                        stack.setTag(null);
                         return InteractionResult.sidedSuccess(level.isClientSide());
                     }
 
                     if (!level.isLoaded(pos1) || !level.isLoaded(be.getBlockPos())) {
-                        if (player != null) player.sendSystemMessage(Component.literal("Failed to link: one node isn't loaded"));
+                        player.sendSystemMessage(Component.literal("Failed to link: one node isn't loaded"));
                         tag.remove("pos1");
                         tag.remove("pos1dim");
+                        stack.setTag(null);
                         return InteractionResult.sidedSuccess(level.isClientSide());
                     }
 
@@ -101,21 +109,49 @@ public class FiberOpticCable extends Item {
                         List<CableNetworkNode> links2 = node2.connections;
 
                         if (links1.contains(node2) && links2.contains(node1)) {
-                            if (player != null) player.sendSystemMessage(Component.literal("Unlinked successfully"));
+                            player.sendSystemMessage(Component.literal("Unlinked successfully"));
 
                             nm.unlinkNodes(node1, node2);
                             nodeBE.update();
                             nodeBE1.update();
                             tag.remove("pos1");
                             tag.remove("pos1dim");
+                            stack.setTag(null);
+
+                            if (!player.isCreative()) { // todo: directly give into inventory if possible, figure out w
+                                double distUnsqrRound = Math.round(Math.sqrt(nodeBE1.getBlockPos().distSqr(nodeBE.getBlockPos())));
+                                while (distUnsqrRound > 0) {
+                                    int amt = (int) Math.min(64, distUnsqrRound);
+
+                                    ItemEntity item = new ItemEntity(level, player.getX(), player.getY(), player.getZ(), new ItemStack(Registration.ModItems.FIBER_OPTIC_CABLE, amt));
+                                    level.addFreshEntity(item);
+                                    distUnsqrRound -= amt;
+                                }
+                            }
+
                             return InteractionResult.sidedSuccess(level.isClientSide());
                         }
 
                         if (links1.size() >= 4 || links2.size() >= 4) {
-                            if (player != null) player.sendSystemMessage(Component.literal("Failed to link: one or more nodes already have 4 links"));
+                            player.sendSystemMessage(Component.literal("Failed to link: one or more nodes already have 4 links"));
                             tag.remove("pos1");
                             tag.remove("pos1dim");
+                            stack.setTag(null);
                             return InteractionResult.sidedSuccess(level.isClientSide());
+                        }
+
+                        if (!player.isCreative()) {
+                            int count = stack.getCount();
+                            double distUnsqrRound = Math.round(Math.sqrt(nodeBE1.getBlockPos().distSqr(nodeBE.getBlockPos())));
+                            if (count >= distUnsqrRound) {
+                                stack.shrink((int)distUnsqrRound);
+                            } else {
+                                player.sendSystemMessage(Component.literal("Failed to link: not enough cables (costs "+distUnsqrRound+")"));
+                                tag.remove("pos1");
+                                tag.remove("pos1dim");
+                                stack.setTag(null);
+                                return InteractionResult.sidedSuccess(level.isClientSide());
+                            }
                         }
 
                         nm.connectNodes(node1, node2);
@@ -123,12 +159,14 @@ public class FiberOpticCable extends Item {
                         nodeBE1.update();
                         tag.remove("pos1");
                         tag.remove("pos1dim");
-                        if (player != null) player.sendSystemMessage(Component.literal("Linked successfully"));
+                        stack.setTag(null);
+                        player.sendSystemMessage(Component.literal("Linked successfully"));
                         return InteractionResult.sidedSuccess(level.isClientSide());
                     } else {
-                        if (player != null) player.sendSystemMessage(Component.literal("Failed to link: one position isn't a valid AbstractNetworkNodeBlockEntity or doesn't exist anymore"));
+                        player.sendSystemMessage(Component.literal("Failed to link: one position isn't a valid AbstractNetworkNodeBlockEntity or doesn't exist anymore"));
                         tag.remove("pos1");
                         tag.remove("pos1dim");
+                        stack.setTag(null);
                         return InteractionResult.sidedSuccess(level.isClientSide());
                     }
                 } else { // nothing linked yet
