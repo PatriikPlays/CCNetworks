@@ -1,0 +1,5 @@
+// 1.20.1	2025-10-28T23:49:25.885694029	CCNetworks/Recipes
+cd28b89f5c905778966de8e651766fe8a0d0ed38 data/ccnetworks/advancements/recipes/redstone/network_interface_node.json
+465a905fe0ffb5015f3220d5b79b6080ef502205 data/ccnetworks/recipes/network_interface_node.json
+92a8d88211281207555675fd4a4ac0f03b78e5df data/ccnetworks/recipes/network_node.json
+63ff66a3bb0974d5f9341907564894d86be51d4e data/ccnetworks/advancements/recipes/redstone/network_node.json

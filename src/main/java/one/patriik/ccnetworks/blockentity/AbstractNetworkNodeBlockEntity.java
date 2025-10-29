@@ -2,7 +2,6 @@ package one.patriik.ccnetworks.blockentity;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-
 import net.minecraft.nbt.IntArrayTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.protocol.Packet;
@@ -15,7 +14,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import one.patriik.ccnetworks.CCNetworks;
-import one.patriik.ccnetworks.Registration;
 import one.patriik.ccnetworks.network.CableNetwork;
 import one.patriik.ccnetworks.network.CableNetworkManager;
 import one.patriik.ccnetworks.network.CableNetworkNode;

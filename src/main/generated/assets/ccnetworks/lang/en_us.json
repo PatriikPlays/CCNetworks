@@ -1,0 +1,6 @@
+{
+  "block.ccnetworks.network_interface_node": "Network Interface Node",
+  "block.ccnetworks.network_node": "Network Node",
+  "item.ccnetworks.fiber_optic_cable": "Fiber Optic Cable",
+  "itemGroup.ccnetworks": "CC:Networks"
+}

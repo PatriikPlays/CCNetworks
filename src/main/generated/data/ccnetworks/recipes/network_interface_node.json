@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "N": {
+      "item": "ccnetworks:network_node"
+    },
+    "x": {
+      "item": "minecraft:dirt"
+    }
+  },
+  "pattern": [
+    "xxx",
+    "xNx",
+    "xxx"
+  ],
+  "result": {
+    "item": "ccnetworks:network_interface_node"
+  },
+  "show_notification": true
+}

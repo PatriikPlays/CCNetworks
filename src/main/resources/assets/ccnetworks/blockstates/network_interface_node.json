@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "facing=up":    { "model": "ccnetworks:block/network_interface_node", "x": 0, "y": 0 },
+    "facing=down":  { "model": "ccnetworks:block/network_interface_node", "x": 180, "y": 0 },
+    "facing=north": { "model": "ccnetworks:block/network_interface_node", "x": 90, "y": 0 },
+    "facing=south": { "model": "ccnetworks:block/network_interface_node", "x": 90, "y": 180 },
+    "facing=west":  { "model": "ccnetworks:block/network_interface_node", "x": 90, "y": 270 },
+    "facing=east":  { "model": "ccnetworks:block/network_interface_node", "x": 90, "y": 90 }
+  }
+}

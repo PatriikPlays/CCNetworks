@@ -13,11 +13,8 @@ import one.patriik.ccnetworks.blockentity.NetworkNodeBlockEntity;
 import java.util.List;
 
 public class NetworkNodeBlockEntityRenderer implements BlockEntityRenderer<NetworkNodeBlockEntity> {
-    //private final BlockEntityRenderDispatcher blockEntityRenderDispatcher;
 
-    public NetworkNodeBlockEntityRenderer(BlockEntityRendererProvider.Context ctx) {
-        //this.blockEntityRenderDispatcher = ctx.getBlockEntityRenderDispatcher();
-    }
+    public NetworkNodeBlockEntityRenderer(BlockEntityRendererProvider.Context ctx) {}
 
     @Override
     public void render(NetworkNodeBlockEntity blockEntity, float partialTick, PoseStack poseStack, MultiBufferSource buffer, int packedLight, int packedOverlay) {

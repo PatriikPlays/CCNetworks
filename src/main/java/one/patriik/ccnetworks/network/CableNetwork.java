@@ -11,16 +11,4 @@ public class CableNetwork {
     public CableNetwork(UUID uuid) {
         this.uuid = uuid;
     }
-
-    /*public final Map<BlockPos, CableNetworkNode> getNodes() {
-        return Collections.unmodifiableMap(nodes);
-    }
-
-    public void joinNetwork(UUID networkUUID) {
-        if (CableNetworks.networks.containsKey(networkUUID)) {
-            for (Map.Entry<BlockPos, CableNetworkNode> entry : CableNetworks.networks.get(networkUUID).getNodes().entrySet()) {
-                entry.getValue().switchNetwork(this);
-            }
-        }
-    }*/
 }

@@ -14,36 +14,4 @@ public class CableNetworkNode {
         this.pos = pos;
         this.parentNetwork = parentNetwork;
     }
-
-    /*
-    public void connect(CableNetworkNode other) {
-        if (!connections.contains(other)) connections.add(other);
-        if (!other.connections.contains(this)) other.connections.add(this);
-    }
-
-    public void disconnect(CableNetworkNode other) {
-        connections.remove(other);
-        other.connections.remove(this);
-
-        Set<CableNetworkNode> reachableFromOther = CableNetworks.listNetworkBFS(other);
-
-        if (!reachableFromOther.contains(this)) {
-            CableNetwork newNetwork = new CableNetwork(UUID.randomUUID());
-
-            for (CableNetworkNode newNetworkNode : reachableFromOther) {
-                newNetworkNode.switchNetwork(newNetwork);
-            }
-        }
-    }
-
-    public void switchNetwork(@NonNull CableNetwork newNetwork) {
-        newNetwork.nodes.put(this.pos, this);
-        this.parentNetwork.nodes.remove(this.pos);
-
-        if (this.parentNetwork.getNodes().isEmpty()) {
-            CableNetworks.networks.remove(this.parentNetwork.uuid);
-        }
-        this.parentNetwork = newNetwork;
-    }
-     */
 }

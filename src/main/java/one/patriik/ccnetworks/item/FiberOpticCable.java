@@ -12,8 +12,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import one.patriik.ccnetworks.Registration;
 import one.patriik.ccnetworks.blockentity.AbstractNetworkNodeBlockEntity;
 import one.patriik.ccnetworks.network.CableNetworkManager;
 import one.patriik.ccnetworks.network.CableNetworkNode;
@@ -112,16 +110,6 @@ public class FiberOpticCable extends Item {
                             tag.remove("pos1dim");
                             return InteractionResult.sidedSuccess(level.isClientSide());
                         }
-                        // this seems like nonsense, why did i do this
-                        /* else if (links1.contains(pos1) && links2.contains(pos2)) {
-                            if (player != null) player.sendSystemMessage(Component.literal("Unlinked successfully"));
-                            nodeBE1.removeLink(pos1);
-                            nodeBE.removeLink(pos2);
-                            CableNetworkManager.unlinkNodes(nodeBE.getNetworkNode(), nodeBE1.getNetworkNode());
-                            tag.remove("pos1");
-                            tag.remove("pos1dim");
-                            return InteractionResult.sidedSuccess(level.isClientSide());
-                        }*/
 
                         if (links1.size() >= 4 || links2.size() >= 4) {
                             if (player != null) player.sendSystemMessage(Component.literal("Failed to link: one or more nodes already have 4 links"));

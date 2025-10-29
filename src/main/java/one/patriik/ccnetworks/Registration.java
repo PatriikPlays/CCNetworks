@@ -6,7 +6,6 @@ import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
@@ -23,8 +22,8 @@ import one.patriik.ccnetworks.block.NetworkNodeBlock;
 import one.patriik.ccnetworks.blockentity.NetworkInterfaceNodeBlockEntity;
 import one.patriik.ccnetworks.blockentity.NetworkNodeBlockEntity;
 import one.patriik.ccnetworks.item.FiberOpticCable;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.signature.qual.Identifier;
+
+import static one.patriik.ccnetworks.block.AbstractNetworkNodeBlock.FACING;
 
 public final class Registration {
     public static final class ModBlockEntities {
@@ -89,7 +88,7 @@ public final class Registration {
     public static final class ModPeripherals {
         public static void init() {
             var peripherals = PeripheralLookup.get();
-            peripherals.registerForBlockEntity((b, s) -> b.getPeripheral(), ModBlockEntities.NETWORK_INTERFACE_NODE);
+            peripherals.registerForBlockEntity((b, s) -> b.getBlockState().getValue(FACING).getOpposite() == s ? b.getPeripheral() : null, ModBlockEntities.NETWORK_INTERFACE_NODE);
         }
     }
 

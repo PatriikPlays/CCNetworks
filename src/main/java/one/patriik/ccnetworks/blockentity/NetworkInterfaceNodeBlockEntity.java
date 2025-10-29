@@ -3,7 +3,6 @@ package one.patriik.ccnetworks.blockentity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import one.patriik.ccnetworks.Registration;
 import one.patriik.ccnetworks.peripherals.NetworkInterfaceNodePeripheral;
 
 public class NetworkInterfaceNodeBlockEntity extends AbstractNetworkNodeBlockEntity {

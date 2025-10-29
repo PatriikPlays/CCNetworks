@@ -11,7 +11,7 @@ public class CCNetworksDataGenerator implements DataGeneratorEntrypoint {
         pack.addProvider(ModelDataGen::new);
         pack.addProvider(LanguageDataGen::new);
         pack.addProvider(LootTableDataGen::new);
-        pack.addProvider(RecipeDataGen::new); // no recipes yet
+        pack.addProvider(RecipeDataGen::new);
         pack.addProvider(BlockTagDataGen::new);
     }
 }
