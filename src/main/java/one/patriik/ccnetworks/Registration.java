@@ -12,9 +12,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
@@ -40,9 +38,17 @@ public final class Registration {
 
 
     public static final class ModBlocks {
-        public static final Block FUSED_SILICA = register("fused_silica", new Block(BlockBehaviour.Properties.copy(Blocks.GLASS)
-                .strength(0.6F)
+        public static final Block FUSED_SILICA = register("fused_silica", new GlassBlock(BlockBehaviour.Properties.copy(Blocks.GLASS)
+                .mapColor(MapColor.COLOR_LIGHT_BLUE)
+                .strength(1.5f, 6.0f)
                 .sound(SoundType.STONE)
+                .noOcclusion()
+        ), true);
+
+        public static final Block SILICA_BLEND = register("silica_blend", new FallingBlock(BlockBehaviour.Properties.copy(Blocks.SAND)
+                .mapColor(MapColor.SAND)
+                .strength(0.5f)
+                .sound(SoundType.SAND)
         ), true);
 
         public static final NetworkNodeBlock NETWORK_NODE = register("network_node", new NetworkNodeBlock(BlockBehaviour.Properties.of()
@@ -111,6 +117,7 @@ public final class Registration {
             // this seems like a way youre not supposed to do this, but i cant find anything else
             ItemGroupEvents.MODIFY_ENTRIES_ALL.register((tab, entries) -> {
                 if (tab == CCNETWORKS_TAB) {
+                    entries.accept(ModBlocks.SILICA_BLEND);
                     entries.accept(ModBlocks.FUSED_SILICA);
                     entries.accept(ModBlocks.NETWORK_NODE);
                     entries.accept(ModBlocks.NETWORK_INTERFACE_NODE);
@@ -133,4 +140,3 @@ public final class Registration {
         ModCreativeTabs.registerItems();
     }
 }
-

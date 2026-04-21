@@ -18,6 +18,9 @@ public class BlockTagDataGen extends FabricTagProvider<Block> {
     @Override
     protected void addTags(HolderLookup.Provider provider) {
         getOrCreateTagBuilder(BlockTags.MINEABLE_WITH_PICKAXE)
-                .add(Registration.ModBlocks.NETWORK_NODE, Registration.ModBlocks.NETWORK_INTERFACE_NODE);
+                .add(Registration.ModBlocks.NETWORK_NODE, Registration.ModBlocks.NETWORK_INTERFACE_NODE, Registration.ModBlocks.FUSED_SILICA);
+
+        getOrCreateTagBuilder(BlockTags.MINEABLE_WITH_SHOVEL)
+                .add(Registration.ModBlocks.SILICA_BLEND);
     }
 }

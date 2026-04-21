@@ -1,6 +1,8 @@
 {
+  "block.ccnetworks.fused_silica": "Fused Silica",
   "block.ccnetworks.network_interface_node": "Network Interface Node",
   "block.ccnetworks.network_node": "Network Node",
+  "block.ccnetworks.silica_blend": "Silica Blend",
   "item.ccnetworks.fiber_optic_cable": "Fiber Optic Cable",
   "itemGroup.ccnetworks": "CC:Networks"
 }

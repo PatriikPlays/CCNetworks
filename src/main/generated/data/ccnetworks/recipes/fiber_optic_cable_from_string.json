@@ -2,26 +2,21 @@
   "type": "minecraft:crafting_shaped",
   "category": "redstone",
   "key": {
-    "D": {
-      "item": "minecraft:diamond"
-    },
     "F": {
       "item": "ccnetworks:fused_silica"
     },
-    "R": {
-      "item": "minecraft:redstone"
-    },
     "S": {
-      "item": "minecraft:stone"
+      "item": "minecraft:string"
     }
   },
   "pattern": [
-    " F ",
-    "SDS",
-    "SRS"
+    "SSS",
+    "FFF",
+    "SSS"
   ],
   "result": {
-    "item": "ccnetworks:network_node"
+    "count": 64,
+    "item": "ccnetworks:fiber_optic_cable"
   },
   "show_notification": true
 }

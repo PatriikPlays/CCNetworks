@@ -16,6 +16,9 @@ public class LanguageDataGen extends FabricLanguageProvider {
         translationBuilder.add(Registration.ModBlocks.NETWORK_NODE, "Network Node");
         translationBuilder.add(Registration.ModBlocks.NETWORK_INTERFACE_NODE, "Network Interface Node");
 
+        translationBuilder.add(Registration.ModBlocks.SILICA_BLEND, "Silica Blend");
+        translationBuilder.add(Registration.ModBlocks.FUSED_SILICA, "Fused Silica");
+
         translationBuilder.add("itemGroup.ccnetworks", "CC:Networks");
     }
 }

@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "F": {
+      "item": "ccnetworks:fused_silica"
+    },
+    "W": {
+      "tag": "minecraft:wool"
+    }
+  },
+  "pattern": [
+    " W ",
+    "FFF",
+    " W "
+  ],
+  "result": {
+    "count": 64,
+    "item": "ccnetworks:fiber_optic_cable"
+  },
+  "show_notification": true
+}

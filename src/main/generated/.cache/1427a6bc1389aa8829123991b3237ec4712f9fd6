@@ -1,5 +1,10 @@
-// 1.20.1	2026-04-21T09:09:28.551519081	CCNetworks/Model Definitions
+// 1.20.1	2026-04-21T22:12:11.719780846	CCNetworks/Model Definitions
+37d4fae0622577cb555e0b921932d80beb87c511 assets/ccnetworks/blockstates/silica_blend.json
 6a56d2e868cd965725fa49e71c3fc1e7a3f777c7 assets/ccnetworks/models/item/network_node.json
+1fcea1816bcaec52e79bed749ca2b943debc9970 assets/ccnetworks/models/block/silica_blend.json
 b8f909fa1aaf55bb8ba3d942abb154b662823744 assets/ccnetworks/models/item/fiber_optic_cable.json
+c7cebdd422910197182f7b7fbe8291183e5a650c assets/ccnetworks/models/item/silica_blend.json
+3986c914a9fa0ed5f57ad867ba82ad5bd6bf26f0 assets/ccnetworks/blockstates/fused_silica.json
 75109e0c74c9f49c889543db3c5b6f92d143b892 assets/ccnetworks/models/item/network_interface_node.json
+212541582b77ca8e1783882eaa79b87d7adcc886 assets/ccnetworks/models/block/fused_silica.json
 7f582fcf02356beae4b9834ee03356da31229f62 assets/ccnetworks/models/item/fused_silica.json

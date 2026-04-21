@@ -11,7 +11,7 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "ccnetworks:network_interface_node"
+          "name": "ccnetworks:fused_silica"
         }
       ],
       "rolls": 1.0
