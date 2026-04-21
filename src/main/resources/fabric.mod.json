@@ -25,5 +25,8 @@
     "fabric": "*",
     "minecraft": "${minecraft_version}",
     "computercraft": ">=${cc_version}"
+  },
+  "suggests": {
+    "worldedit": "*"
   }
 }

@@ -1,4 +1,5 @@
-// 1.20.1	2025-10-28T23:49:25.886514241	CCNetworks/Model Definitions
+// 1.20.1	2026-04-21T09:09:28.551519081	CCNetworks/Model Definitions
 6a56d2e868cd965725fa49e71c3fc1e7a3f777c7 assets/ccnetworks/models/item/network_node.json
 b8f909fa1aaf55bb8ba3d942abb154b662823744 assets/ccnetworks/models/item/fiber_optic_cable.json
 75109e0c74c9f49c889543db3c5b6f92d143b892 assets/ccnetworks/models/item/network_interface_node.json
+7f582fcf02356beae4b9834ee03356da31229f62 assets/ccnetworks/models/item/fused_silica.json

@@ -1,7 +1,9 @@
 package one.patriik.ccnetworks;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -46,6 +48,15 @@ public class CCNetworks implements ModInitializer {
             cableNetworkManagers.put(level.dimension(), manager);
 
             LOGGER.info("Loaded CableNetworkWorldSavedData for dimension {}", level.dimension().toString());
+        });
+
+        // TODO: this may be a bit expensive, but for now it should be fine
+        // FIXME: measure it!!
+        ServerChunkEvents.CHUNK_LOAD.register((level, chunk) -> {
+            CableNetworkManager manager = cableNetworkManagers.get(level.dimension());
+            if (manager != null) {
+                manager.removeOrphanedNodesInChunk(chunk);
+            }
         });
     }
 }

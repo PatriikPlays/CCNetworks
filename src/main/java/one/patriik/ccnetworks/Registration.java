@@ -14,6 +14,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
@@ -39,6 +40,11 @@ public final class Registration {
 
 
     public static final class ModBlocks {
+        public static final Block FUSED_SILICA = register("fused_silica", new Block(BlockBehaviour.Properties.copy(Blocks.GLASS)
+                .strength(0.6F)
+                .sound(SoundType.STONE)
+        ), true);
+
         public static final NetworkNodeBlock NETWORK_NODE = register("network_node", new NetworkNodeBlock(BlockBehaviour.Properties.of()
                 .strength(0.5F)
                 .mapColor(MapColor.STONE)
@@ -105,6 +111,7 @@ public final class Registration {
             // this seems like a way youre not supposed to do this, but i cant find anything else
             ItemGroupEvents.MODIFY_ENTRIES_ALL.register((tab, entries) -> {
                 if (tab == CCNETWORKS_TAB) {
+                    entries.accept(ModBlocks.FUSED_SILICA);
                     entries.accept(ModBlocks.NETWORK_NODE);
                     entries.accept(ModBlocks.NETWORK_INTERFACE_NODE);
                     entries.accept(ModItems.FIBER_OPTIC_CABLE);

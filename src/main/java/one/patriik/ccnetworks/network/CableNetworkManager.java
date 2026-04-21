@@ -5,9 +5,15 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.LongArrayTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.chunk.LevelChunk;
 import one.patriik.ccnetworks.CCNetworks;
+import one.patriik.ccnetworks.blockentity.AbstractNetworkNodeBlockEntity;
 
 import java.util.*;
 
@@ -256,6 +262,25 @@ public class CableNetworkManager {
         }
 
         saveToSavedData();
+    }
+
+    public void removeOrphanedNodesInChunk(LevelChunk chunk) {
+        ChunkPos chunkPos = chunk.getPos();
+        List<CableNetworkNode> toRemove = new ArrayList<>();
+
+        for (CableNetworkNode node : networkNodeMap.values()) {
+            if (chunkPos.equals(new ChunkPos(node.pos))) {
+                BlockEntity blockEntity = chunk.getBlockEntity(node.pos);
+                if (!(blockEntity instanceof AbstractNetworkNodeBlockEntity)) {
+                    toRemove.add(node);
+                }
+            }
+        }
+
+        for (CableNetworkNode node : toRemove) {
+            CCNetworks.LOGGER.warn("Removing orphaned network node at {} (no matching block entity found)", node.pos);
+            removeNode(node);
+        }
     }
 
     public Set<CableNetworkNode> listNetworkBFS(CableNetworkNode start) {
