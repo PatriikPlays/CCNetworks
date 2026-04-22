@@ -20,8 +20,8 @@ import one.patriik.ccnetworks.blockentity.AbstractNetworkNodeBlockEntity;
 
 import java.util.List;
 
+// this is mostly ai generated, ive looked through it and it seems sane though
 public class AbstractNetworkNodeBlockEntityRenderer<T extends AbstractNetworkNodeBlockEntity> implements BlockEntityRenderer<T> {
-
     public AbstractNetworkNodeBlockEntityRenderer(BlockEntityRendererProvider.Context ctx) {}
 
     @Override
@@ -54,8 +54,8 @@ public class AbstractNetworkNodeBlockEntityRenderer<T extends AbstractNetworkNod
 
             VertexConsumer vertexConsumer = buffer.getBuffer(RenderType.solid());
 
-            // Quadratic droop: 1m drop at 64 blocks distance (64^2 = 4096)
-            float droop = (length * length) / 4096.0f;
+            // Quadratic droop: 2m drop at 64 blocks distance (64^2 = 4096)
+            float droop = ((length * length) / 4096.0f) * 2.0f;
 
             // Dynamically scale segments based on distance, minimum 4, always an even number
             int segments = Math.max(4, ((int) Math.ceil(length / 2.0f)) * 2);
@@ -194,7 +194,7 @@ public class AbstractNetworkNodeBlockEntityRenderer<T extends AbstractNetworkNod
 
     private void addVertex(VertexConsumer consumer, Matrix4f posMatrix, Matrix3f normalMatrix, Vector3f pos, Vector3f normal, int light, int overlay) {
         consumer.vertex(posMatrix, pos.x(), pos.y(), pos.z())
-                .color(80, 80, 80, 255) // Increased brightness
+                .color(80, 80, 80, 255)
                 .uv(0, 0)
                 .overlayCoords(overlay)
                 .uv2(light)
@@ -209,6 +209,6 @@ public class AbstractNetworkNodeBlockEntityRenderer<T extends AbstractNetworkNod
 
     @Override
     public int getViewDistance() {
-        return 128; // Standard render distance
+        return 256;
     }
 }
