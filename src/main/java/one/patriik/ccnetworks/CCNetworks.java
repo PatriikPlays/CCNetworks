@@ -50,8 +50,6 @@ public class CCNetworks implements ModInitializer {
             LOGGER.info("Loaded CableNetworkWorldSavedData for dimension {}", level.dimension().toString());
         });
 
-        // TODO: this may be a bit expensive, but for now it should be fine
-        // FIXME: measure it!!
         ServerChunkEvents.CHUNK_LOAD.register((level, chunk) -> {
             CableNetworkManager manager = cableNetworkManagers.get(level.dimension());
             if (manager != null) {

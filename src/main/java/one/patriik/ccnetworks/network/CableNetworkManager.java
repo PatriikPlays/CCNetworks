@@ -20,6 +20,7 @@ import java.util.*;
 public class CableNetworkManager {
     private final Map<UUID, CableNetwork> networks = new HashMap<>();
     private final Map<BlockPos, CableNetworkNode> networkNodeMap = new HashMap<>();
+    private final Map<ChunkPos, Set<CableNetworkNode>> chunkNodeMap = new HashMap<>();
 
     private CableNetworkWorldSavedData savedData;
 
@@ -50,6 +51,7 @@ public class CableNetworkManager {
                 CableNetworkNode node = new CableNetworkNode(pos, network, isInterfaceNode);
                 network.nodes.put(pos, node);
                 networkNodeMap.put(pos, node);
+                chunkNodeMap.computeIfAbsent(new ChunkPos(pos), k -> new HashSet<>()).add(node);
 
                 if (isInterfaceNode) {
                     network.interfaceNodeCache.add(node);
@@ -133,6 +135,7 @@ public class CableNetworkManager {
         network.nodes.put(position, node);
         network.interfaceNodeCache.add(node);
         networkNodeMap.put(position, node);
+        chunkNodeMap.computeIfAbsent(new ChunkPos(position), k -> new HashSet<>()).add(node);
 
         saveToSavedData();
 
@@ -197,6 +200,16 @@ public class CableNetworkManager {
         // remove from nodes, remove network and return if empty
         node.parentNetwork.nodes.remove(node.pos);
         networkNodeMap.remove(node.pos);
+        
+        ChunkPos chunkPos = new ChunkPos(node.pos);
+        Set<CableNetworkNode> chunkNodes = chunkNodeMap.get(chunkPos);
+        if (chunkNodes != null) {
+            chunkNodes.remove(node);
+            if (chunkNodes.isEmpty()) {
+                chunkNodeMap.remove(chunkPos);
+            }
+        }
+
         if (node.parentNetwork.nodes.isEmpty()) {
             networks.remove(node.parentNetwork.uuid);
             saveToSavedData();
@@ -264,15 +277,19 @@ public class CableNetworkManager {
         saveToSavedData();
     }
 
+    // todo: somehow send block updates to all nodes connected to the removed node?
     public void removeOrphanedNodesInChunk(LevelChunk chunk) {
         ChunkPos chunkPos = chunk.getPos();
         List<CableNetworkNode> toRemove = new ArrayList<>();
 
-        for (CableNetworkNode node : networkNodeMap.values()) {
-            if (chunkPos.equals(new ChunkPos(node.pos))) {
+        Set<CableNetworkNode> chunkNodes = chunkNodeMap.get(chunkPos);
+        if (chunkNodes != null) {
+            for (CableNetworkNode node : chunkNodes) {
                 BlockEntity blockEntity = chunk.getBlockEntity(node.pos);
                 if (!(blockEntity instanceof AbstractNetworkNodeBlockEntity)) {
                     toRemove.add(node);
+                } else {
+                    CCNetworks.LOGGER.trace("Found valid network node at {} in chunk {}, skipping", node.pos, chunkPos);
                 }
             }
         }
