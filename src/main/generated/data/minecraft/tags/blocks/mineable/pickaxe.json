@@ -1,8 +1,0 @@
-{
-  "replace": false,
-  "values": [
-    "ccnetworks:network_node",
-    "ccnetworks:network_interface_node",
-    "ccnetworks:fused_silica"
-  ]
-}
