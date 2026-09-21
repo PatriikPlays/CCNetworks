@@ -3,9 +3,13 @@
   "id": "ccnetworks",
   "version": "${version}",
   "name": "CCNetworks",
-  "description": "",
-  "authors": [],
-  "contact": {},
+  "description": "Networking through unloaded chunks in CC.",
+  "authors": [ "patriik" ],
+  "contact": {
+    "email": "me@patriik.one",
+    "issues": "https://github.com/PatriikPlays/CCNetworks/issues",
+    "homepage": "https://patriik.one"
+  },
   "license": "MIT",
   "icon": "assets/ccnetworks/icon.png",
   "environment": "*",

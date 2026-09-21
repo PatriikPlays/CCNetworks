@@ -63,22 +63,24 @@ public abstract class AbstractNetworkNodeBlock extends BaseEntityBlock {
 
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
-        BlockEntity be = level.getBlockEntity(pos);
-        if (be instanceof AbstractNetworkNodeBlockEntity nodeBE) {
-            if (!level.isClientSide()) {
-                var connections = nodeBE.getNetworkNode().connections;
-                List<BlockPos> connectionPosList = new ArrayList<>();
+        if (!state.is(newState.getBlock())) {
+            BlockEntity be = level.getBlockEntity(pos);
+            if (be instanceof AbstractNetworkNodeBlockEntity nodeBE) {
+                if (!level.isClientSide()) {
+                    var connections = nodeBE.getNetworkNode().connections;
+                    List<BlockPos> connectionPosList = new ArrayList<>();
 
-                for (var node : connections) {
-                    connectionPosList.add(node.pos);
-                }
+                    for (var node : connections) {
+                        connectionPosList.add(node.pos);
+                    }
 
-                nodeBE.getCableNetworkManager().removeNode(nodeBE.getNetworkNode());
+                    nodeBE.getCableNetworkManager().removeNode(nodeBE.getNetworkNode());
 
-                for (BlockPos p : connectionPosList) {
-                    BlockEntity connectionBE = level.getBlockEntity(p);
-                    if (connectionBE instanceof AbstractNetworkNodeBlockEntity connectionNodeBE) {
-                        connectionNodeBE.update();
+                    for (BlockPos p : connectionPosList) {
+                        BlockEntity connectionBE = level.getBlockEntity(p);
+                        if (connectionBE instanceof AbstractNetworkNodeBlockEntity connectionNodeBE) {
+                            connectionNodeBE.update();
+                        }
                     }
                 }
             }

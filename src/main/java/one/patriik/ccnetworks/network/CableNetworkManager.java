@@ -111,6 +111,7 @@ public class CableNetworkManager {
     public void setIsInterfaceNode(CableNetworkNode node, boolean isInterfaceNode) {
         if (node != null) {
             node.isInterfaceNode = isInterfaceNode;
+            node.parentNetwork.recomputeInterfaceNodeCache();
             saveToSavedData();
         }
     }
@@ -133,7 +134,7 @@ public class CableNetworkManager {
     public CableNetworkNode createNode(CableNetwork network, BlockPos position, boolean isInterface) {
         CableNetworkNode node = new CableNetworkNode(position, network, isInterface);
         network.nodes.put(position, node);
-        network.interfaceNodeCache.add(node);
+        if (isInterface) network.interfaceNodeCache.add(node);
         networkNodeMap.put(position, node);
         chunkNodeMap.computeIfAbsent(new ChunkPos(position), k -> new HashSet<>()).add(node);
 
@@ -148,7 +149,7 @@ public class CableNetworkManager {
             return;
         }
 
-        if (nodeA.parentNetwork.uuid != nodeB.parentNetwork.uuid) {
+        if (!nodeA.parentNetwork.uuid.equals(nodeB.parentNetwork.uuid)) {
             joinNetwork(nodeA.parentNetwork, nodeB.parentNetwork);
         }
 
