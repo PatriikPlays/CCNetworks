@@ -42,7 +42,7 @@ public class NetworkInterfaceNodePeripheral implements IPeripheral {
     }
 
     @LuaFunction(mainThread = true)
-    public final void send(String data) { // FIXME: this seems bad, it checks all nodes, i should implement some sort of end node thing
+    public final void send(String data) {
         for (CableNetworkNode node : networkNode.getNetwork().interfaceNodeCache) {
             if (!node.pos.equals(networkNode.getBlockPos()) && networkNode.getLevel() != null) {
                 BlockEntity be = networkNode.getLevel().getBlockEntity(node.pos);

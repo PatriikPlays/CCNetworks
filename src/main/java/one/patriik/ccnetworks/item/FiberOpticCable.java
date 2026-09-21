@@ -127,13 +127,21 @@ public class FiberOpticCable extends Item {
                             tag.remove("pos1dim");
                             stack.setTag(null);
 
-                            if (!player.isCreative()) { // todo: directly give into inventory if possible
+                            if (!player.isCreative()) {
                                 double distRound = Math.round(Math.sqrt(nodeBE1.getBlockPos().distSqr(nodeBE.getBlockPos())));
+
                                 while (distRound > 0) {
                                     int amt = (int) Math.min(64, distRound);
 
-                                    ItemEntity item = new ItemEntity(level, player.getX(), player.getY(), player.getZ(), new ItemStack(Registration.ModItems.FIBER_OPTIC_CABLE, amt));
-                                    level.addFreshEntity(item);
+                                    ItemStack itemStack = new ItemStack(Registration.ModItems.FIBER_OPTIC_CABLE, amt);
+
+                                    boolean inserted = player.getInventory().add(itemStack);
+
+                                    if (!itemStack.isEmpty()) {
+                                        ItemEntity item = new ItemEntity(level, player.getX(), player.getY(), player.getZ(), itemStack);
+                                        level.addFreshEntity(item);
+                                    }
+
                                     distRound -= amt;
                                 }
                             }
