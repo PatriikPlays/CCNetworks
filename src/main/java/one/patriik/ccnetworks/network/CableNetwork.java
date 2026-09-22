@@ -6,7 +6,7 @@ import java.util.*;
 
 public class CableNetwork {
     public Map<BlockPos, CableNetworkNode> nodes = new HashMap<>();
-    public List<CableNetworkNode> interfaceNodeCache = new ArrayList<>();
+    public volatile List<CableNetworkNode> interfaceNodeCache = List.of();
     public UUID uuid;
 
     public CableNetwork(UUID uuid) {
@@ -14,11 +14,17 @@ public class CableNetwork {
     }
 
     public void recomputeInterfaceNodeCache() {
-        interfaceNodeCache.clear();
+        List<CableNetworkNode> interfaces = new ArrayList<>();
         for (CableNetworkNode node : nodes.values()) {
             if (node.isInterfaceNode) {
-                interfaceNodeCache.add(node);
+                interfaces.add(node);
             }
+        }
+
+        List<CableNetworkNode> snapshot = List.copyOf(interfaces);
+        interfaceNodeCache = snapshot;
+        for (CableNetworkNode node : nodes.values()) {
+            node.interfaceDestinations = snapshot;
         }
     }
 }

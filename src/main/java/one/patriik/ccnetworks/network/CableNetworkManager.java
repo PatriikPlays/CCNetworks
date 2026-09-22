@@ -14,6 +14,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
 import one.patriik.ccnetworks.CCNetworks;
 import one.patriik.ccnetworks.blockentity.AbstractNetworkNodeBlockEntity;
+import one.patriik.ccnetworks.peripherals.NetworkInterfaceNodePeripheral;
 
 import java.util.*;
 
@@ -53,9 +54,6 @@ public class CableNetworkManager {
                 networkNodeMap.put(pos, node);
                 chunkNodeMap.computeIfAbsent(new ChunkPos(pos), k -> new HashSet<>()).add(node);
 
-                if (isInterfaceNode) {
-                    network.interfaceNodeCache.add(node);
-                }
             }
 
             // restore connections
@@ -75,6 +73,8 @@ public class CableNetworkManager {
                     }
                 }
             }
+
+            network.recomputeInterfaceNodeCache();
         }
     }
 
@@ -116,6 +116,19 @@ public class CableNetworkManager {
         }
     }
 
+    public void registerInterfacePeripheral(CableNetworkNode node, NetworkInterfaceNodePeripheral peripheral) {
+        node.peripheral = peripheral;
+        peripheral.setNetworkNode(node);
+        node.parentNetwork.recomputeInterfaceNodeCache();
+    }
+
+    public void unregisterInterfacePeripheral(CableNetworkNode node, NetworkInterfaceNodePeripheral peripheral) {
+        if (node.peripheral == peripheral) {
+            node.peripheral = null;
+            peripheral.clearNetworkNode();
+        }
+    }
+
     public CableNetworkNode getNodeAt(BlockPos pos) {
         return networkNodeMap.get(pos);
     }
@@ -134,7 +147,7 @@ public class CableNetworkManager {
     public CableNetworkNode createNode(CableNetwork network, BlockPos position, boolean isInterface) {
         CableNetworkNode node = new CableNetworkNode(position, network, isInterface);
         network.nodes.put(position, node);
-        if (isInterface) network.interfaceNodeCache.add(node);
+        network.recomputeInterfaceNodeCache();
         networkNodeMap.put(position, node);
         chunkNodeMap.computeIfAbsent(new ChunkPos(position), k -> new HashSet<>()).add(node);
 
@@ -178,18 +191,20 @@ public class CableNetworkManager {
             networkThatWillKeepExisting.nodes.put(entry.getKey(), entry.getValue());
             networkNodeMap.remove(entry.getKey());
             networkNodeMap.put(entry.getKey(), entry.getValue());
-            if (entry.getValue().isInterfaceNode) {
-                networkThatWillKeepExisting.interfaceNodeCache.add(entry.getValue());
-            }
         }
 
         networkThatWillBeDestroyed.nodes.clear();
         networks.remove(networkThatWillBeDestroyed.uuid);
+        networkThatWillKeepExisting.recomputeInterfaceNodeCache();
 
         saveToSavedData();
     }
 
     public void removeNode(CableNetworkNode node) { // this can be optimized way better i think
+        NetworkInterfaceNodePeripheral peripheral = node.peripheral;
+        node.peripheral = null;
+        if (peripheral != null) peripheral.clearNetworkNode();
+        node.interfaceDestinations = List.of();
         List<CableNetworkNode> neighbors = new ArrayList<>(node.connections);
 
         // disconnect all connections

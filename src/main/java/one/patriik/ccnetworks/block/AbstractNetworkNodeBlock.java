@@ -16,6 +16,7 @@ import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import one.patriik.ccnetworks.CCNetworks;
 import one.patriik.ccnetworks.blockentity.AbstractNetworkNodeBlockEntity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -67,19 +68,23 @@ public abstract class AbstractNetworkNodeBlock extends BaseEntityBlock {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof AbstractNetworkNodeBlockEntity nodeBE) {
                 if (!level.isClientSide()) {
-                    var connections = nodeBE.getNetworkNode().connections;
-                    List<BlockPos> connectionPosList = new ArrayList<>();
+                    var networkNode = nodeBE.getNetworkNode();
+                    if (networkNode == null) {
+                        CCNetworks.LOGGER.error("Removing network node block at {} without a saved network node, this shouldn't happen", pos);
+                    } else {
+                        List<BlockPos> connectionPosList = new ArrayList<>();
 
-                    for (var node : connections) {
-                        connectionPosList.add(node.pos);
-                    }
+                        for (var node : networkNode.connections) {
+                            connectionPosList.add(node.pos);
+                        }
 
-                    nodeBE.getCableNetworkManager().removeNode(nodeBE.getNetworkNode());
+                        nodeBE.getCableNetworkManager().removeNode(networkNode);
 
-                    for (BlockPos p : connectionPosList) {
-                        BlockEntity connectionBE = level.getBlockEntity(p);
-                        if (connectionBE instanceof AbstractNetworkNodeBlockEntity connectionNodeBE) {
-                            connectionNodeBE.update();
+                        for (BlockPos p : connectionPosList) {
+                            BlockEntity connectionBE = level.getBlockEntity(p);
+                            if (connectionBE instanceof AbstractNetworkNodeBlockEntity connectionNodeBE) {
+                                connectionNodeBE.update();
+                            }
                         }
                     }
                 }
