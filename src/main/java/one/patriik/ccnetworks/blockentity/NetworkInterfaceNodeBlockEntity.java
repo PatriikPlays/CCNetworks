@@ -16,6 +16,15 @@ public class NetworkInterfaceNodeBlockEntity extends AbstractNetworkNodeBlockEnt
         return peripheral;
     }
 
+    @Override
+    public void setLevel(net.minecraft.world.level.Level level) {
+        super.setLevel(level);
+        if (!level.isClientSide()) {
+            var node = getNetworkNode();
+            getCableNetworkManager().registerInterfacePeripheral(node, peripheral);
+        }
+    }
+
     public void sendMessageToPeripheral(String data) {
         peripheral.receiveMessage(data);
     }

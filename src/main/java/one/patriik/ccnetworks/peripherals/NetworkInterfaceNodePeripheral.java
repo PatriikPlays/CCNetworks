@@ -4,14 +4,18 @@ import dan200.computercraft.api.lua.LuaFunction;
 import dan200.computercraft.api.peripheral.AttachedComputerSet;
 import dan200.computercraft.api.peripheral.IComputerAccess;
 import dan200.computercraft.api.peripheral.IPeripheral;
-import net.minecraft.world.level.block.entity.BlockEntity;
+import one.patriik.ccnetworks.CCNetworks;
 import one.patriik.ccnetworks.blockentity.NetworkInterfaceNodeBlockEntity;
 import one.patriik.ccnetworks.network.CableNetworkNode;
 import org.jspecify.annotations.Nullable;
 
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
 public class NetworkInterfaceNodePeripheral implements IPeripheral {
     private final NetworkInterfaceNodeBlockEntity networkNode;
     private final AttachedComputerSet computers = new AttachedComputerSet();
+    private volatile CableNetworkNode networkNodeRef;
 
     public NetworkInterfaceNodePeripheral(NetworkInterfaceNodeBlockEntity networkNode) {
         this.networkNode = networkNode;
@@ -41,15 +45,27 @@ public class NetworkInterfaceNodePeripheral implements IPeripheral {
         computers.forEach(computer -> computer.queueEvent("optic_network_message", computer.getAttachmentName(), data));
     }
 
-    @LuaFunction(mainThread = true)
+    public void setNetworkNode(CableNetworkNode node) {
+        networkNodeRef = node;
+    }
+
+    @LuaFunction
     public final void send(String data) {
-        for (CableNetworkNode node : networkNode.getNetwork().interfaceNodeCache) {
-            if (!node.pos.equals(networkNode.getBlockPos()) && networkNode.getLevel() != null) {
-                BlockEntity be = networkNode.getLevel().getBlockEntity(node.pos);
-                if (be instanceof NetworkInterfaceNodeBlockEntity nodeBE) {
-                    nodeBE.sendMessageToPeripheral(data);
+        CableNetworkNode source = networkNodeRef;
+        if (source == null) {
+            throw new IllegalStateException("Network interface peripheral is not attached to a network node");
+        }
+
+        List<CableNetworkNode> destinations = source.interfaceDestinations;
+        CompletableFuture.runAsync(() -> {
+            for (CableNetworkNode node : destinations) {
+                if (node != source && node.peripheral != null) {
+                    node.peripheral.receiveMessage(data);
                 }
             }
-        }
+        }).exceptionally(error -> {
+            CCNetworks.LOGGER.error("Failed to send optic network message", error);
+            return null;
+        });
     }
 }

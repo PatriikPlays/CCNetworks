@@ -21,6 +21,7 @@ import one.patriik.ccnetworks.blockentity.AbstractNetworkNodeBlockEntity;
 import java.util.List;
 
 // this is mostly ai generated, ive looked through it and it seems sane though
+// maybe switch to leash render type?
 public class AbstractNetworkNodeBlockEntityRenderer<T extends AbstractNetworkNodeBlockEntity> implements BlockEntityRenderer<T> {
     public AbstractNetworkNodeBlockEntityRenderer(BlockEntityRendererProvider.Context ctx) {}
 
