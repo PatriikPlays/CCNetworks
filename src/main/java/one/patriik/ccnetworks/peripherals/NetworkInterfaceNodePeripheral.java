@@ -42,7 +42,9 @@ public class NetworkInterfaceNodePeripheral implements IPeripheral {
     }
 
     public void receiveMessage(String data) {
-        computers.forEach(computer -> computer.queueEvent("optic_network_message", computer.getAttachmentName(), data));
+        computers.forEach(computer -> {
+            computer.queueEvent("optic_network_message", computer.getAttachmentName(), data);
+        });
     }
 
     public void setNetworkNode(CableNetworkNode node) {

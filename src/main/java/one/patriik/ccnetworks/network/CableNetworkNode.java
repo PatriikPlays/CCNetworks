@@ -10,8 +10,7 @@ public class CableNetworkNode {
     @NonNull public final BlockPos pos;
     public List<CableNetworkNode> connections = new ArrayList<>(4);
     @NonNull public CableNetwork parentNetwork;
-    public
-    boolean isInterfaceNode;
+    public boolean isInterfaceNode;
     public volatile NetworkInterfaceNodePeripheral peripheral;
     public volatile List<CableNetworkNode> interfaceDestinations = List.of();
 
