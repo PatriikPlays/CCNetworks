@@ -51,6 +51,10 @@ public class NetworkInterfaceNodePeripheral implements IPeripheral {
         networkNodeRef = node;
     }
 
+    public void clearNetworkNode() {
+        networkNodeRef = null;
+    }
+
     @LuaFunction
     public final void send(String data) {
         CableNetworkNode source = networkNodeRef;

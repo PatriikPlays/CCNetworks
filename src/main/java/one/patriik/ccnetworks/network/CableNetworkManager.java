@@ -122,6 +122,13 @@ public class CableNetworkManager {
         node.parentNetwork.recomputeInterfaceNodeCache();
     }
 
+    public void unregisterInterfacePeripheral(CableNetworkNode node, NetworkInterfaceNodePeripheral peripheral) {
+        if (node.peripheral == peripheral) {
+            node.peripheral = null;
+            peripheral.clearNetworkNode();
+        }
+    }
+
     public CableNetworkNode getNodeAt(BlockPos pos) {
         return networkNodeMap.get(pos);
     }
@@ -194,7 +201,9 @@ public class CableNetworkManager {
     }
 
     public void removeNode(CableNetworkNode node) { // this can be optimized way better i think
+        NetworkInterfaceNodePeripheral peripheral = node.peripheral;
         node.peripheral = null;
+        if (peripheral != null) peripheral.clearNetworkNode();
         node.interfaceDestinations = List.of();
         List<CableNetworkNode> neighbors = new ArrayList<>(node.connections);
 

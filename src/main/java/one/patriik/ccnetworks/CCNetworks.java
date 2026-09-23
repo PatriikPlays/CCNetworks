@@ -13,7 +13,9 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.chunk.LevelChunk;
 import one.patriik.ccnetworks.blockentity.AbstractNetworkNodeBlockEntity;
+import one.patriik.ccnetworks.blockentity.NetworkInterfaceNodeBlockEntity;
 import one.patriik.ccnetworks.network.CableNetworkManager;
 import one.patriik.ccnetworks.network.CableNetworkNode;
 import org.slf4j.LoggerFactory;
@@ -62,6 +64,22 @@ public class CCNetworks implements ModInitializer {
             CableNetworkManager manager = cableNetworkManagers.get(level.dimension());
             if (manager != null) {
                 manager.removeOrphanedNodesInChunk(chunk);
+            }
+        });
+
+        ServerChunkEvents.CHUNK_UNLOAD.register((level, chunk) -> {
+            CableNetworkManager manager = cableNetworkManagers.get(level.dimension());
+            if (manager == null) {
+                return;
+            }
+
+            for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
+                if (blockEntity instanceof NetworkInterfaceNodeBlockEntity interfaceNode) {
+                    var node = manager.getNodeAt(interfaceNode.getBlockPos());
+                    if (node != null) {
+                        manager.unregisterInterfacePeripheral(node, interfaceNode.getPeripheral());
+                    }
+                }
             }
         });
 
