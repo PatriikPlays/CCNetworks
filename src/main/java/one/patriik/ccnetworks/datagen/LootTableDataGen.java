@@ -13,5 +13,7 @@ public class LootTableDataGen extends FabricBlockLootTableProvider {
     public void generate() {
         this.dropSelf(Registration.ModBlocks.SILICA_BLEND);
         this.dropSelf(Registration.ModBlocks.FUSED_SILICA);
+        this.dropSelf(Registration.ModBlocks.NETWORK_NODE);
+        this.dropSelf(Registration.ModBlocks.NETWORK_INTERFACE_NODE);
     }
 }
