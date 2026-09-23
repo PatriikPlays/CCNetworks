@@ -3,6 +3,7 @@ package one.patriik.ccnetworks.blockentity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import one.patriik.ccnetworks.CCNetworks;
 import one.patriik.ccnetworks.peripherals.NetworkInterfaceNodePeripheral;
 
 public class NetworkInterfaceNodeBlockEntity extends AbstractNetworkNodeBlockEntity {
@@ -21,6 +22,10 @@ public class NetworkInterfaceNodeBlockEntity extends AbstractNetworkNodeBlockEnt
         super.setLevel(level);
         if (!level.isClientSide()) {
             var node = getNetworkNode();
+            if (node == null) {
+                CCNetworks.LOGGER.error("Registering interface peripheral at {} without a saved network node", getBlockPos());
+                return;
+            }
             getCableNetworkManager().registerInterfacePeripheral(node, peripheral);
         }
     }

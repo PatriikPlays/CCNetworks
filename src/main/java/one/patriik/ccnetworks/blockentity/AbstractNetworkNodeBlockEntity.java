@@ -52,13 +52,15 @@ public abstract class AbstractNetworkNodeBlockEntity extends BlockEntity {
         super.setLevel(level);
 
         if (!level.isClientSide()) {
-            if (this.getNetworkNode() == null) {
-                this.getCableNetworkManager().createNode(this.getCableNetworkManager().newNetwork(), this.getBlockPos(), this.isInterfaceNode());
-            } else if (this.getNetworkNode().isInterfaceNode != this.isInterfaceNode()) { // no clue why this is needed, but im not gonna remove it
-                this.getCableNetworkManager().setIsInterfaceNode(this.getNetworkNode(), isInterfaceNode());
+            CableNetworkManager manager = this.getCableNetworkManager();
+            CableNetworkNode node = manager.getNodeAt(this.getBlockPos());
+            if (node == null) {
+                node = manager.createNode(manager.newNetwork(), this.getBlockPos(), this.isInterfaceNode());
+            } else if (node.isInterfaceNode != this.isInterfaceNode()) {
+                manager.setIsInterfaceNode(node, isInterfaceNode());
             }
 
-            updateLinks();
+            updateLinks(node);
         }
     }
 
@@ -76,23 +78,29 @@ public abstract class AbstractNetworkNodeBlockEntity extends BlockEntity {
         return CCNetworks.getCableNetworkManager(serverLevel.getServer(), serverLevel);
     }
 
-    public CableNetworkNode getNetworkNode() {
+    public @Nullable CableNetworkNode getNetworkNode() {
         return this.getCableNetworkManager().getNodeAt(this.getBlockPos());
     }
 
-    public CableNetwork getNetwork() {
-        return getNetworkNode().parentNetwork;
+    public @Nullable CableNetwork getNetwork() {
+        CableNetworkNode node = getNetworkNode();
+        return node == null ? null : node.parentNetwork;
     }
 
-    private void updateLinks() {
+    private void updateLinks(CableNetworkNode node) {
         renderLinks.clear();
-        for (CableNetworkNode node : this.getNetworkNode().connections) {
-            renderLinks.add(node.pos);
+        if (node == null) {
+            CCNetworks.LOGGER.error("Updating network node block entity at {} without a saved network node", getBlockPos());
+            return;
+        }
+
+        for (CableNetworkNode connection : node.connections) {
+            renderLinks.add(connection.pos);
         }
     }
 
     public void update() {
-        updateLinks();
+        updateLinks(getNetworkNode());
 
         Level level = this.getLevel();
         if (level != null && !level.isClientSide()) {

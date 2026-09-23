@@ -16,6 +16,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
 import one.patriik.ccnetworks.blockentity.AbstractNetworkNodeBlockEntity;
 import one.patriik.ccnetworks.blockentity.NetworkInterfaceNodeBlockEntity;
+import one.patriik.ccnetworks.network.CableNetwork;
 import one.patriik.ccnetworks.network.CableNetworkManager;
 import one.patriik.ccnetworks.network.CableNetworkNode;
 import org.slf4j.LoggerFactory;
@@ -96,12 +97,17 @@ public class CCNetworks implements ModInitializer {
                             BlockEntity be = level.getBlockEntity(pos);
                             if (be instanceof AbstractNetworkNodeBlockEntity node) {
                                 CableNetworkNode nodeObj = node.getNetworkNode();
-                                UUID networkUuid = nodeObj.parentNetwork.uuid;
+                                CableNetwork network = node.getNetwork();
+                                if (nodeObj == null || network == null) {
+                                    context.getSource().sendFailure(Component.literal("No network found for node at specified position"));
+                                    return 0;
+                                }
+                                UUID networkUuid = network.uuid;
 
                                 // yes i hate this, no im not gonna fix it
                                 StringBuilder serialized = new StringBuilder();
                                 serialized.append("[");
-                                var it = nodeObj.parentNetwork.nodes.values().iterator();
+                                var it = network.nodes.values().iterator();
                                 while (it.hasNext()) {
                                     CableNetworkNode v = it.next();
                                     serialized.append(String.format("{\"pos\":[%d,%d,%d],\"isInterface\":%s}", v.pos.getX(), v.pos.getY(), v.pos.getZ(), v.isInterfaceNode));
@@ -110,8 +116,8 @@ public class CCNetworks implements ModInitializer {
                                 serialized.append("]");
 
                                 String debugMessage = "Network " + networkUuid + ":\n"
-                                    + "size: " + nodeObj.parentNetwork.nodes.size() + "\n"
-                                    + "ifnodes: " + nodeObj.parentNetwork.interfaceNodeCache.size() + "\n"
+                                    + "size: " + network.nodes.size() + "\n"
+                                    + "ifnodes: " + network.interfaceNodeCache.size() + "\n"
                                     + "net: " + serialized;
 
                                 if (debugMessage.length() < 32768-4096) {
@@ -135,12 +141,15 @@ public class CCNetworks implements ModInitializer {
 
                             BlockEntity be = level.getBlockEntity(pos);
                             if (be instanceof AbstractNetworkNodeBlockEntity node) {
-                                CableNetworkNode nodeObj = node.getNetworkNode();
-                                UUID networkUuid = nodeObj.parentNetwork.uuid;
+                                CableNetwork network = node.getNetwork();
+                                if (network == null) {
+                                    context.getSource().sendFailure(Component.literal("No network found for node at specified position"));
+                                    return 0;
+                                }
 
-                                String debugMessage = "Network " + networkUuid + ":\n"
-                                    + "size: " + nodeObj.parentNetwork.nodes.size() + "\n"
-                                    + "ifnodes: " + nodeObj.parentNetwork.interfaceNodeCache.size();
+                                String debugMessage = "Network " + network.uuid + ":\n"
+                                    + "size: " + network.nodes.size() + "\n"
+                                    + "ifnodes: " + network.interfaceNodeCache.size();
 
                                 context.getSource().sendSuccess(() -> Component.literal(debugMessage), false);
                             } else {
