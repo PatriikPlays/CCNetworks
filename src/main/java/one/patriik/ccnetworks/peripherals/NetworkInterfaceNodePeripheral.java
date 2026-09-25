@@ -5,14 +5,12 @@ import dan200.computercraft.api.lua.LuaFunction;
 import dan200.computercraft.api.peripheral.AttachedComputerSet;
 import dan200.computercraft.api.peripheral.IComputerAccess;
 import dan200.computercraft.api.peripheral.IPeripheral;
-import one.patriik.ccnetworks.CCNetworks;
 import one.patriik.ccnetworks.blockentity.NetworkInterfaceNodeBlockEntity;
 import one.patriik.ccnetworks.network.CableNetworkNode;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class NetworkInterfaceNodePeripheral implements IPeripheral {
@@ -125,18 +123,13 @@ public class NetworkInterfaceNodePeripheral implements IPeripheral {
         }
 
         List<CableNetworkNode> destinations = source.interfaceDestinations;
-        CompletableFuture.runAsync(() -> {
-            for (CableNetworkNode node : destinations) {
-                if (node == source) continue;
+        for (CableNetworkNode node : destinations) {
+            if (node == source) continue;
 
-                NetworkInterfaceNodePeripheral destination = node.peripheral;
-                if (destination != null) {
-                    destination.receiveMessage(channel, replyChannel, payload);
-                }
+            NetworkInterfaceNodePeripheral destination = node.peripheral;
+            if (destination != null) {
+                destination.receiveMessage(channel, replyChannel, payload);
             }
-        }).exceptionally(error -> {
-            CCNetworks.LOGGER.error("Failed to send optic network message", error);
-            return null;
-        });
+        }
     }
 }
