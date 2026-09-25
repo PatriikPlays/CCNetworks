@@ -35,10 +35,10 @@ public class FiberOpticCable extends Item {
 
         if (!level.isClientSide()) {
             if (player.isShiftKeyDown()) {
-                CompoundTag tag = stack.getOrCreateTag();
-
-                tag.remove("pos1");
-                tag.remove("pos1dim");
+                CompoundTag tag = stack.getTag();
+                if (tag != null) {
+                    clearSelection(stack, tag);
+                }
 
                 player.sendSystemMessage(Component.literal("Selection cleared"));
                 return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
@@ -65,9 +65,7 @@ public class FiberOpticCable extends Item {
 
                 if ((hasPos1 || hasPos1Dim) && !(hasPos1 && hasPos1Dim)) {
                     player.sendSystemMessage(Component.literal("Failed to link"));
-                    tag.remove("pos1");
-                    tag.remove("pos1dim");
-                    stack.setTag(null);
+                    clearSelection(stack, tag);
                 } else if (hasPos1 && hasPos1Dim) { // link now
                     int[] pos1Array = tag.getIntArray("pos1");
                     BlockPos pos1 = new BlockPos(pos1Array[0], pos1Array[1], pos1Array[2]);
@@ -75,17 +73,13 @@ public class FiberOpticCable extends Item {
 
                     if (pos1.equals(pos2)) {
                         player.sendSystemMessage(Component.literal("Failed to link: cannot link to itself"));
-                        tag.remove("pos1");
-                        tag.remove("pos1dim");
-                        stack.setTag(null);
+                        clearSelection(stack, tag);
                         return InteractionResult.sidedSuccess(level.isClientSide());
                     }
 
                     if (!tag.getString("pos1dim").equals(level.dimension().location().toString())) {
                         player.sendSystemMessage(Component.literal("Failed to link: cannot link across dimensions"));
-                        tag.remove("pos1");
-                        tag.remove("pos1dim");
-                        stack.setTag(null);
+                        clearSelection(stack, tag);
                         return InteractionResult.sidedSuccess(level.isClientSide());
                     }
 
@@ -93,9 +87,7 @@ public class FiberOpticCable extends Item {
 
                     if (!(be1 instanceof AbstractNetworkNodeBlockEntity nodeBE1)) {
                         player.sendSystemMessage(Component.literal("Failed to link: first node no longer exists or is not loaded"));
-                        tag.remove("pos1");
-                        tag.remove("pos1dim");
-                        stack.setTag(null);
+                        clearSelection(stack, tag);
                         return InteractionResult.sidedSuccess(level.isClientSide());
                     }
 
@@ -108,9 +100,7 @@ public class FiberOpticCable extends Item {
 
                     if (node1 == null || node2 == null) {
                         player.sendSystemMessage(Component.literal("Failed to link: one or both nodes are not properly initialized"));
-                        tag.remove("pos1");
-                        tag.remove("pos1dim");
-                        stack.setTag(null);
+                        clearSelection(stack, tag);
                         return InteractionResult.sidedSuccess(level.isClientSide());
                     }
 
@@ -123,9 +113,7 @@ public class FiberOpticCable extends Item {
                             nm.unlinkNodes(node1, node2);
                             nodeBE.update();
                             nodeBE1.update();
-                            tag.remove("pos1");
-                            tag.remove("pos1dim");
-                            stack.setTag(null);
+                            clearSelection(stack, tag);
 
                             if (!player.isCreative()) {
                                 double distRound = Math.round(Math.sqrt(nodeBE1.getBlockPos().distSqr(nodeBE.getBlockPos())));
@@ -151,9 +139,7 @@ public class FiberOpticCable extends Item {
 
                         if (links1.size() >= CCNetworks.CONFIG.maxConnectionsPerNode || links2.size() >= CCNetworks.CONFIG.maxConnectionsPerNode) {
                             player.sendSystemMessage(Component.literal("Failed to link: one or more nodes already has max amount of links ("+CCNetworks.CONFIG.maxConnectionsPerNode+")"));
-                            tag.remove("pos1");
-                            tag.remove("pos1dim");
-                            stack.setTag(null);
+                            clearSelection(stack, tag);
                             return InteractionResult.sidedSuccess(level.isClientSide());
                         }
 
@@ -161,9 +147,7 @@ public class FiberOpticCable extends Item {
 
                         if (distRound > CCNetworks.CONFIG.maxCableLength) {
                             player.sendSystemMessage(Component.literal("Failed to link: cable too long, limit is "+CCNetworks.CONFIG.maxCableLength));
-                            tag.remove("pos1");
-                            tag.remove("pos1dim");
-                            stack.setTag(null);
+                            clearSelection(stack, tag);
                             return InteractionResult.sidedSuccess(level.isClientSide());
                         }
 
@@ -178,16 +162,12 @@ public class FiberOpticCable extends Item {
                             }
                             if (available < cost) {
                                 player.sendSystemMessage(Component.literal("Failed to link: not enough cables (have " + available + ", costs " + cost + ")"));
-                                tag.remove("pos1");
-                                tag.remove("pos1dim");
-                                stack.setTag(null);
+                                clearSelection(stack, tag);
                                 return InteractionResult.sidedSuccess(level.isClientSide());
                             }
                         }
 
-                        tag.remove("pos1");
-                        tag.remove("pos1dim");
-                        stack.setTag(null);
+                        clearSelection(stack, tag);
 
                         if (!player.isCreative()) {
                             consumeCablesFromInventory(player, (int) distRound, stack);
@@ -210,10 +190,19 @@ public class FiberOpticCable extends Item {
         return InteractionResult.PASS;
     }
 
+    private static void clearSelection(ItemStack stack, CompoundTag tag) {
+        tag.remove("pos1");
+        tag.remove("pos1dim");
+        if (tag.isEmpty()) {
+            stack.setTag(null);
+        }
+    }
+
     @Override
     public boolean isFoil(ItemStack stack) {
-        CompoundTag tag = stack.getOrCreateTag();
-        boolean hasPos1 = tag.contains("pos1", CompoundTag.TAG_INT_ARRAY) && tag.getIntArray("pos1").length >= 3;
+        CompoundTag tag = stack.getTag();
+        boolean hasPos1 = tag != null && tag.contains("pos1", CompoundTag.TAG_INT_ARRAY)
+            && tag.getIntArray("pos1").length >= 3;
 
         if (hasPos1) {
             return true;
