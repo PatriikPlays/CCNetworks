@@ -2,6 +2,7 @@ package one.patriik.ccnetworks.item;
 
 import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -12,6 +13,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -35,8 +37,8 @@ public class FiberOpticCable extends Item {
 
         if (!level.isClientSide()) {
             if (player.isShiftKeyDown()) {
-                CompoundTag tag = stack.getTag();
-                if (tag != null) {
+                CompoundTag tag = getCustomData(stack);
+                if (!tag.isEmpty()) {
                     clearSelection(stack, tag);
                 }
 
@@ -59,8 +61,9 @@ public class FiberOpticCable extends Item {
 
         if (be instanceof AbstractNetworkNodeBlockEntity nodeBE && player instanceof ServerPlayer && !(player instanceof FakePlayer)) { // todo: support turtles later?
             if (!level.isClientSide()) {
-                CompoundTag tag = stack.getOrCreateTag();
-                boolean hasPos1 = tag.contains("pos1", CompoundTag.TAG_INT_ARRAY) && tag.getIntArray("pos1").length >= 3;
+                CompoundTag tag = getCustomData(stack);
+                boolean hasPos1 = tag.contains("pos1", CompoundTag.TAG_INT_ARRAY)
+                    && tag.getIntArray("pos1").length >= 3;
                 boolean hasPos1Dim = tag.contains("pos1dim", CompoundTag.TAG_STRING);
 
                 if ((hasPos1 || hasPos1Dim) && !(hasPos1 && hasPos1Dim)) {
@@ -181,6 +184,7 @@ public class FiberOpticCable extends Item {
                 } else { // nothing linked yet
                     tag.putIntArray("pos1", new int[]{pos.getX(), pos.getY(), pos.getZ()});
                     tag.putString("pos1dim", level.dimension().location().toString());
+                    setCustomData(stack, tag);
                 }
 
             }
@@ -193,15 +197,26 @@ public class FiberOpticCable extends Item {
     private static void clearSelection(ItemStack stack, CompoundTag tag) {
         tag.remove("pos1");
         tag.remove("pos1dim");
+        setCustomData(stack, tag);
+    }
+
+    private static CompoundTag getCustomData(ItemStack stack) {
+        CustomData customData = stack.get(DataComponents.CUSTOM_DATA);
+        return customData == null ? new CompoundTag() : customData.copyTag();
+    }
+
+    private static void setCustomData(ItemStack stack, CompoundTag tag) {
         if (tag.isEmpty()) {
-            stack.setTag(null);
+            stack.remove(DataComponents.CUSTOM_DATA);
+        } else {
+            CustomData.set(DataComponents.CUSTOM_DATA, stack, tag);
         }
     }
 
     @Override
     public boolean isFoil(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
-        boolean hasPos1 = tag != null && tag.contains("pos1", CompoundTag.TAG_INT_ARRAY)
+        CompoundTag tag = getCustomData(stack);
+        boolean hasPos1 = tag.contains("pos1", CompoundTag.TAG_INT_ARRAY)
             && tag.getIntArray("pos1").length >= 3;
 
         if (hasPos1) {

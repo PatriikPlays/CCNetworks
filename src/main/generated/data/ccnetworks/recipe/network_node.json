@@ -21,7 +21,7 @@
     "SRS"
   ],
   "result": {
-    "item": "ccnetworks:network_node"
-  },
-  "show_notification": true
+    "count": 1,
+    "id": "ccnetworks:network_node"
+  }
 }

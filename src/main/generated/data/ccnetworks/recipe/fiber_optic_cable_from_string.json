@@ -16,7 +16,6 @@
   ],
   "result": {
     "count": 64,
-    "item": "ccnetworks:fiber_optic_cable"
-  },
-  "show_notification": true
+    "id": "ccnetworks:fiber_optic_cable"
+  }
 }

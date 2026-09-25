@@ -6,5 +6,7 @@
   "ingredient": {
     "item": "ccnetworks:silica_blend"
   },
-  "result": "ccnetworks:fused_silica"
+  "result": {
+    "id": "ccnetworks:fused_silica"
+  }
 }

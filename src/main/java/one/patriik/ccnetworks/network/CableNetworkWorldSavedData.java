@@ -1,6 +1,6 @@
 package one.patriik.ccnetworks.network;
 
-import net.minecraft.data.worldgen.DimensionTypes;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -10,13 +10,16 @@ import net.minecraft.world.level.saveddata.SavedData;
 import org.jetbrains.annotations.NotNull;
 
 public class CableNetworkWorldSavedData extends SavedData {
+    private static final Factory<CableNetworkWorldSavedData> FACTORY =
+            new Factory<>(CableNetworkWorldSavedData::new, CableNetworkWorldSavedData::new, null);
+
     private CompoundTag data = new CompoundTag();
 
     private CableNetworkWorldSavedData() {
         this.setDirty();
     }
 
-    private CableNetworkWorldSavedData(CompoundTag nbt) {
+    private CableNetworkWorldSavedData(CompoundTag nbt, HolderLookup.Provider registries) {
         if (nbt.contains("data")) {
             this.data = nbt.getCompound("data");
         }
@@ -36,8 +39,7 @@ public class CableNetworkWorldSavedData extends SavedData {
         if (level == null) throw new IllegalStateException("World not loaded: " + dimension);
 
         CableNetworkWorldSavedData state = level.getDataStorage().computeIfAbsent(
-                CableNetworkWorldSavedData::new,
-                CableNetworkWorldSavedData::new,
+                FACTORY,
                 "cable_network_data"
         );
 
@@ -46,7 +48,7 @@ public class CableNetworkWorldSavedData extends SavedData {
     }
 
     @Override
-    public @NotNull CompoundTag save(CompoundTag compoundTag) {
+    public @NotNull CompoundTag save(CompoundTag compoundTag, HolderLookup.Provider registries) {
         compoundTag.put("data", data.copy());
         return compoundTag;
     }

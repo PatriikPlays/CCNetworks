@@ -1,6 +1,7 @@
 package one.patriik.ccnetworks.blockentity;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntArrayTag;
 import net.minecraft.nbt.ListTag;
@@ -31,8 +32,8 @@ public abstract class AbstractNetworkNodeBlockEntity extends BlockEntity {
     final List<BlockPos> renderLinks = new ArrayList<>();
 
     @Override
-    public void load(CompoundTag nbt) {
-        super.load(nbt);
+    protected void loadAdditional(CompoundTag nbt, HolderLookup.Provider registries) {
+        super.loadAdditional(nbt, registries);
 
         // this should only be loaded on clients, probably
         renderLinks.clear();
@@ -115,8 +116,8 @@ public abstract class AbstractNetworkNodeBlockEntity extends BlockEntity {
     }
 
     @Override
-    public @NotNull CompoundTag getUpdateTag() {
-        CompoundTag tag = super.getUpdateTag();
+    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        CompoundTag tag = super.getUpdateTag(registries);
 
         ListTag list = new ListTag();
         for (BlockPos pos : renderLinks) {

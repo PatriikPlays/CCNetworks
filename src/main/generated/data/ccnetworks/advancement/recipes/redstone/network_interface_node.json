@@ -1,13 +1,11 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_fused_silica": {
+    "has_redstone": {
       "conditions": {
         "items": [
           {
-            "items": [
-              "ccnetworks:fused_silica"
-            ]
+            "items": "minecraft:redstone"
           }
         ]
       },
@@ -15,21 +13,20 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "ccnetworks:fiber_optic_cable_from_wool"
+        "recipe": "ccnetworks:network_interface_node"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
   },
   "requirements": [
     [
-      "has_fused_silica",
-      "has_the_recipe"
+      "has_the_recipe",
+      "has_redstone"
     ]
   ],
   "rewards": {
     "recipes": [
-      "ccnetworks:fiber_optic_cable_from_wool"
+      "ccnetworks:network_interface_node"
     ]
-  },
-  "sends_telemetry_event": false
+  }
 }

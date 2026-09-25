@@ -20,8 +20,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import one.patriik.ccnetworks.blockentity.AbstractNetworkNodeBlockEntity;
 import one.patriik.ccnetworks.client.CCNetworksClient;
-import org.joml.Matrix3f;
-import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import java.util.List;
@@ -33,7 +31,7 @@ public class AbstractNetworkNodeBlockEntityRenderer<T extends AbstractNetworkNod
     private static final float CONNECTION_OFFSET = 0.315f - 0.5f;
     private static final float MIN_CABLE_LENGTH = 0.01f;
     private static final int CABLE_TINT = 128;
-    private static final ResourceLocation WOOL_TEXTURE = new ResourceLocation("minecraft", "block/black_wool");
+    private static final ResourceLocation WOOL_TEXTURE = ResourceLocation.withDefaultNamespace("block/black_wool");
 
     public AbstractNetworkNodeBlockEntityRenderer(BlockEntityRendererProvider.Context ctx) {}
 
@@ -226,8 +224,6 @@ public class AbstractNetworkNodeBlockEntityRenderer<T extends AbstractNetworkNod
             int light,
             int overlay
     ) {
-        Matrix4f positionMatrix = pose.pose();
-        Matrix3f normalMatrix = pose.normal();
         Vector3f end = new Vector3f(targetX, targetY, targetZ);
         Vector3f point = new Vector3f();
         Vector3f nextPoint = new Vector3f();
@@ -272,10 +268,10 @@ public class AbstractNetworkNodeBlockEntityRenderer<T extends AbstractNetworkNod
 
             if (i == 0) {
                 normal.set(forward).negate();
-                addVertex(consumer, positionMatrix, normalMatrix, currentCorners[3], normal, texture, 0.0f, 16.0f, light, overlay);
-                addVertex(consumer, positionMatrix, normalMatrix, currentCorners[2], normal, texture, 16.0f, 16.0f, light, overlay);
-                addVertex(consumer, positionMatrix, normalMatrix, currentCorners[1], normal, texture, 16.0f, 0.0f, light, overlay);
-                addVertex(consumer, positionMatrix, normalMatrix, currentCorners[0], normal, texture, 0.0f, 0.0f, light, overlay);
+                addVertex(consumer, pose, currentCorners[3], normal, texture, 0.0f, 16.0f, light, overlay);
+                addVertex(consumer, pose, currentCorners[2], normal, texture, 16.0f, 16.0f, light, overlay);
+                addVertex(consumer, pose, currentCorners[1], normal, texture, 16.0f, 0.0f, light, overlay);
+                addVertex(consumer, pose, currentCorners[0], normal, texture, 0.0f, 0.0f, light, overlay);
             } else {
                 for (int side = 0; side < 4; side++) {
                     int nextSide = (side + 1) % 4;
@@ -287,10 +283,10 @@ public class AbstractNetworkNodeBlockEntityRenderer<T extends AbstractNetworkNod
                     edgeB.set(fourth).sub(first);
                     normal.set(edgeA).cross(edgeB).normalize();
 
-                    addVertex(consumer, positionMatrix, normalMatrix, first, normal, texture, 0.0f, 0.0f, light, overlay);
-                    addVertex(consumer, positionMatrix, normalMatrix, second, normal, texture, 16.0f, 0.0f, light, overlay);
-                    addVertex(consumer, positionMatrix, normalMatrix, currentCorners[nextSide], normal, texture, 16.0f, 16.0f, light, overlay);
-                    addVertex(consumer, positionMatrix, normalMatrix, fourth, normal, texture, 0.0f, 16.0f, light, overlay);
+                    addVertex(consumer, pose, first, normal, texture, 0.0f, 0.0f, light, overlay);
+                    addVertex(consumer, pose, second, normal, texture, 16.0f, 0.0f, light, overlay);
+                    addVertex(consumer, pose, currentCorners[nextSide], normal, texture, 16.0f, 16.0f, light, overlay);
+                    addVertex(consumer, pose, fourth, normal, texture, 0.0f, 16.0f, light, overlay);
                 }
             }
 
@@ -350,8 +346,7 @@ public class AbstractNetworkNodeBlockEntityRenderer<T extends AbstractNetworkNod
 
     private static void addVertex(
             VertexConsumer consumer,
-            Matrix4f positionMatrix,
-            Matrix3f normalMatrix,
+            PoseStack.Pose pose,
             Vector3f position,
             Vector3f normal,
             TextureAtlasSprite texture,
@@ -360,13 +355,12 @@ public class AbstractNetworkNodeBlockEntityRenderer<T extends AbstractNetworkNod
             int light,
             int overlay
     ) {
-        consumer.vertex(positionMatrix, position.x(), position.y(), position.z())
-                .color(CABLE_TINT, CABLE_TINT, CABLE_TINT, 255)
-                .uv(texture.getU(u), texture.getV(v))
-                .overlayCoords(overlay)
-                .uv2(light)
-                .normal(normalMatrix, normal.x(), normal.y(), normal.z())
-                .endVertex();
+        consumer.addVertex(pose, position.x(), position.y(), position.z())
+                .setColor(CABLE_TINT, CABLE_TINT, CABLE_TINT, 255)
+                .setUv(texture.getU(u / 16.0f), texture.getV(v / 16.0f))
+                .setOverlay(overlay)
+                .setLight(light)
+                .setNormal(pose, normal.x(), normal.y(), normal.z());
     }
 
     @Override

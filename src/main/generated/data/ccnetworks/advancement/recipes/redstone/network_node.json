@@ -1,13 +1,11 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_quartz_block": {
+    "has_redstone": {
       "conditions": {
         "items": [
           {
-            "items": [
-              "minecraft:quartz_block"
-            ]
+            "items": "minecraft:redstone"
           }
         ]
       },
@@ -15,21 +13,20 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "ccnetworks:silica_blend"
+        "recipe": "ccnetworks:network_node"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
   },
   "requirements": [
     [
-      "has_quartz_block",
-      "has_the_recipe"
+      "has_the_recipe",
+      "has_redstone"
     ]
   ],
   "rewards": {
     "recipes": [
-      "ccnetworks:silica_blend"
+      "ccnetworks:network_node"
     ]
-  },
-  "sends_telemetry_event": false
+  }
 }

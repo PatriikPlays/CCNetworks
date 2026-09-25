@@ -1,13 +1,11 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_fused_silica": {
+    "has_quartz_block": {
       "conditions": {
         "items": [
           {
-            "items": [
-              "ccnetworks:fused_silica"
-            ]
+            "items": "minecraft:quartz_block"
           }
         ]
       },
@@ -15,21 +13,20 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "ccnetworks:fiber_optic_cable_from_string"
+        "recipe": "ccnetworks:silica_blend"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
   },
   "requirements": [
     [
-      "has_fused_silica",
-      "has_the_recipe"
+      "has_the_recipe",
+      "has_quartz_block"
     ]
   ],
   "rewards": {
     "recipes": [
-      "ccnetworks:fiber_optic_cable_from_string"
+      "ccnetworks:silica_blend"
     ]
-  },
-  "sends_telemetry_event": false
+  }
 }

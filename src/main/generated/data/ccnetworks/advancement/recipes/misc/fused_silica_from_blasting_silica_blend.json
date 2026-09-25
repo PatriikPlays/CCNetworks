@@ -1,13 +1,11 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_redstone": {
+    "has_silica_blend": {
       "conditions": {
         "items": [
           {
-            "items": [
-              "minecraft:redstone"
-            ]
+            "items": "ccnetworks:silica_blend"
           }
         ]
       },
@@ -15,21 +13,20 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "ccnetworks:network_interface_node"
+        "recipe": "ccnetworks:fused_silica_from_blasting_silica_blend"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
   },
   "requirements": [
     [
-      "has_redstone",
-      "has_the_recipe"
+      "has_the_recipe",
+      "has_silica_blend"
     ]
   ],
   "rewards": {
     "recipes": [
-      "ccnetworks:network_interface_node"
+      "ccnetworks:fused_silica_from_blasting_silica_blend"
     ]
-  },
-  "sends_telemetry_event": false
+  }
 }

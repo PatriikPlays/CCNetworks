@@ -10,6 +10,7 @@
     }
   ],
   "result": {
-    "item": "ccnetworks:network_interface_node"
+    "count": 1,
+    "id": "ccnetworks:network_interface_node"
   }
 }

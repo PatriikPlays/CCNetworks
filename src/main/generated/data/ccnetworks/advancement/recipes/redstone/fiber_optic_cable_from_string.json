@@ -1,13 +1,11 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_silica_blend": {
+    "has_fused_silica": {
       "conditions": {
         "items": [
           {
-            "items": [
-              "ccnetworks:silica_blend"
-            ]
+            "items": "ccnetworks:fused_silica"
           }
         ]
       },
@@ -15,21 +13,20 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "ccnetworks:fused_silica_from_smelting_silica_blend"
+        "recipe": "ccnetworks:fiber_optic_cable_from_string"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
   },
   "requirements": [
     [
-      "has_silica_blend",
-      "has_the_recipe"
+      "has_the_recipe",
+      "has_fused_silica"
     ]
   ],
   "rewards": {
     "recipes": [
-      "ccnetworks:fused_silica_from_smelting_silica_blend"
+      "ccnetworks:fiber_optic_cable_from_string"
     ]
-  },
-  "sends_telemetry_event": false
+  }
 }

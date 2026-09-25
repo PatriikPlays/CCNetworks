@@ -5,9 +5,7 @@
       "conditions": {
         "items": [
           {
-            "items": [
-              "ccnetworks:silica_blend"
-            ]
+            "items": "ccnetworks:silica_blend"
           }
         ]
       },
@@ -15,21 +13,20 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipe": "ccnetworks:fused_silica_from_blasting_silica_blend"
+        "recipe": "ccnetworks:fused_silica_from_smelting_silica_blend"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
   },
   "requirements": [
     [
-      "has_silica_blend",
-      "has_the_recipe"
+      "has_the_recipe",
+      "has_silica_blend"
     ]
   ],
   "rewards": {
     "recipes": [
-      "ccnetworks:fused_silica_from_blasting_silica_blend"
+      "ccnetworks:fused_silica_from_smelting_silica_blend"
     ]
-  },
-  "sends_telemetry_event": false
+  }
 }

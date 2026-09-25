@@ -8,6 +8,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ColorRGBA;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
@@ -30,7 +31,7 @@ public final class Registration {
         public static final BlockEntityType<NetworkInterfaceNodeBlockEntity> NETWORK_INTERFACE_NODE = register("network_interface_node", FabricBlockEntityTypeBuilder.create((blockPos, blockState) -> new NetworkInterfaceNodeBlockEntity(Registration.ModBlockEntities.NETWORK_INTERFACE_NODE, blockPos, blockState), ModBlocks.NETWORK_INTERFACE_NODE).build());
 
         public static <T extends BlockEntityType<?>> T register(String path, T blockEntityType) {
-            return Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, new ResourceLocation(CCNetworks.MOD_ID, path), blockEntityType);
+            return Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(CCNetworks.MOD_ID, path), blockEntityType);
         }
 
         public static void init() {}
@@ -38,14 +39,14 @@ public final class Registration {
 
 
     public static final class ModBlocks {
-        public static final Block FUSED_SILICA = register("fused_silica", new GlassBlock(BlockBehaviour.Properties.copy(Blocks.GLASS)
+        public static final Block FUSED_SILICA = register("fused_silica", new TransparentBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.GLASS)
                 .mapColor(MapColor.COLOR_LIGHT_BLUE)
                 .strength(1.5f, 6.0f)
                 .sound(SoundType.STONE)
                 .noOcclusion()
         ), true);
 
-        public static final Block SILICA_BLEND = register("silica_blend", new FallingBlock(BlockBehaviour.Properties.copy(Blocks.SAND)
+        public static final Block SILICA_BLEND = register("silica_blend", new ColoredFallingBlock(new ColorRGBA(0xDBD3A0), BlockBehaviour.Properties.ofFullCopy(Blocks.SAND)
                 .mapColor(MapColor.SAND)
                 .strength(0.5f)
                 .sound(SoundType.SAND)
@@ -72,7 +73,7 @@ public final class Registration {
         ), true);
 
         public static <T extends Block> T register(String name, T block, boolean shouldRegisterItem) {
-            ResourceLocation id = new ResourceLocation(CCNetworks.MOD_ID, name);
+            ResourceLocation id = ResourceLocation.fromNamespaceAndPath(CCNetworks.MOD_ID, name);
 
             if (shouldRegisterItem) {
                 BlockItem blockItem = new BlockItem(block, new Item.Properties());
@@ -90,7 +91,7 @@ public final class Registration {
         public static final Item FIBER_OPTIC_CABLE = register("fiber_optic_cable", new FiberOpticCable(new Item.Properties()));
 
         public static <T extends Item> T register(String name, T item) {
-            ResourceLocation id = new ResourceLocation(CCNetworks.MOD_ID, name);
+            ResourceLocation id = ResourceLocation.fromNamespaceAndPath(CCNetworks.MOD_ID, name);
             return Registry.register(BuiltInRegistries.ITEM, id, item);
         }
 
@@ -106,7 +107,7 @@ public final class Registration {
 
     public static final class ModCreativeTabs {
         public static final CreativeModeTab CCNETWORKS_TAB = Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB,
-                new ResourceLocation(CCNetworks.MOD_ID, "ccnetworks"),
+                ResourceLocation.fromNamespaceAndPath(CCNetworks.MOD_ID, "ccnetworks"),
                 FabricItemGroup.builder()
                     .icon(() -> new ItemStack(ModBlocks.NETWORK_INTERFACE_NODE))
                     .title(Component.translatable("itemGroup.ccnetworks"))
