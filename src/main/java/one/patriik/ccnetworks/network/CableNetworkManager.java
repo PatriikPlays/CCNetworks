@@ -5,10 +5,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.LongArrayTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -16,104 +14,153 @@ import one.patriik.ccnetworks.CCNetworks;
 import one.patriik.ccnetworks.blockentity.AbstractNetworkNodeBlockEntity;
 import one.patriik.ccnetworks.peripherals.NetworkInterfaceNodePeripheral;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.UUID;
 
 public class CableNetworkManager {
+    private static final String NETWORKS_TAG = "networks";
+    private static final String UUID_TAG = "uuid";
+    private static final String NODES_TAG = "nodes";
+    private static final String POSITION_TAG = "pos";
+    private static final String INTERFACE_TAG = "isInterface";
+    private static final String CONNECTIONS_TAG = "connections";
+
     private final Map<UUID, CableNetwork> networks = new HashMap<>();
     private final Map<BlockPos, CableNetworkNode> networkNodeMap = new HashMap<>();
     private final Map<ChunkPos, Set<CableNetworkNode>> chunkNodeMap = new HashMap<>();
 
-    private CableNetworkWorldSavedData savedData;
+    private final CableNetworkWorldSavedData savedData;
 
     public CableNetworkManager(MinecraftServer server, ServerLevel level) {
         this.savedData = CableNetworkWorldSavedData.getDimensionSavedData(server, level.dimension());
+        loadNetworks(savedData.getData());
+    }
 
-        CompoundTag tag = savedData.getData();
-        if (!tag.contains("networks")) return;
+    private void loadNetworks(CompoundTag data) {
+        if (!data.contains(NETWORKS_TAG)) {
+            return;
+        }
 
-        ListTag networkList = tag.getList("networks", Tag.TAG_COMPOUND);
+        ListTag networkTags = data.getList(NETWORKS_TAG, Tag.TAG_COMPOUND);
+        for (int i = 0; i < networkTags.size(); i++) {
+            loadNetwork(networkTags.getCompound(i));
+        }
+    }
 
-        for (int i = 0; i < networkList.size(); i++) {
-            CompoundTag netTag = networkList.getCompound(i);
-            UUID networkUUID = netTag.getUUID("uuid");
+    private void loadNetwork(CompoundTag networkTag) {
+        UUID networkUUID = networkTag.getUUID(UUID_TAG);
+        CableNetwork network = new CableNetwork(networkUUID);
+        networks.put(networkUUID, network);
 
-            CableNetwork network = new CableNetwork(networkUUID);
-            networks.put(networkUUID, network);
+        if (!networkTag.contains(NODES_TAG)) {
+            return;
+        }
 
-            if (!netTag.contains("nodes")) continue;
+        ListTag nodeTags = networkTag.getList(NODES_TAG, Tag.TAG_COMPOUND);
+        for (int i = 0; i < nodeTags.size(); i++) {
+            loadNode(network, nodeTags.getCompound(i));
+        }
 
-            ListTag nodesList = netTag.getList("nodes", Tag.TAG_COMPOUND);
+        for (int i = 0; i < nodeTags.size(); i++) {
+            loadConnections(network, nodeTags.getCompound(i));
+        }
 
-            for (int j = 0; j < nodesList.size(); j++) {
-                CompoundTag nodeTag = nodesList.getCompound(j);
-                BlockPos pos = BlockPos.of(nodeTag.getLong("pos"));
-                boolean isInterfaceNode = nodeTag.getBoolean("isInterface");
+        network.recomputeInterfaceNodeCache();
+    }
 
-                CableNetworkNode node = new CableNetworkNode(pos, network, isInterfaceNode);
-                network.nodes.put(pos, node);
-                networkNodeMap.put(pos, node);
-                chunkNodeMap.computeIfAbsent(new ChunkPos(pos), k -> new HashSet<>()).add(node);
+    private void loadNode(CableNetwork network, CompoundTag nodeTag) {
+        BlockPos pos = BlockPos.of(nodeTag.getLong(POSITION_TAG));
+        boolean isInterfaceNode = nodeTag.getBoolean(INTERFACE_TAG);
+        CableNetworkNode node = new CableNetworkNode(pos, network, isInterfaceNode);
+        network.nodes.put(pos, node);
+        addNodeToIndexes(node);
+    }
 
+    private void loadConnections(CableNetwork network, CompoundTag nodeTag) {
+        if (!nodeTag.contains(CONNECTIONS_TAG)) {
+            return;
+        }
+
+        BlockPos pos = BlockPos.of(nodeTag.getLong(POSITION_TAG));
+        CableNetworkNode node = network.nodes.get(pos);
+        for (long connectionPos : nodeTag.getLongArray(CONNECTIONS_TAG)) {
+            CableNetworkNode connectedNode = network.nodes.get(BlockPos.of(connectionPos));
+            if (connectedNode != null) {
+                node.connections.add(connectedNode);
             }
+        }
+    }
 
-            // restore connections
-            for (int j = 0; j < nodesList.size(); j++) {
-                CompoundTag nodeTag = nodesList.getCompound(j);
-                BlockPos pos = BlockPos.of(nodeTag.getLong("pos"));
-                CableNetworkNode node = network.nodes.get(pos);
+    private void addNodeToIndexes(CableNetworkNode node) {
+        networkNodeMap.put(node.pos, node);
+        chunkNodeMap.computeIfAbsent(new ChunkPos(node.pos), key -> new HashSet<>()).add(node);
+    }
 
-                if (!nodeTag.contains("connections")) continue;
+    private void removeNodeFromIndexes(CableNetworkNode node) {
+        networkNodeMap.remove(node.pos);
 
-                long[] connectionPosArray = nodeTag.getLongArray("connections");
-                for (long l : connectionPosArray) {
-                    BlockPos connectionPos = BlockPos.of(l);
-                    CableNetworkNode connectedNode = network.nodes.get(connectionPos);
-                    if (connectedNode != null) {
-                        node.connections.add(connectedNode);
-                    }
-                }
+        ChunkPos chunkPos = new ChunkPos(node.pos);
+        Set<CableNetworkNode> chunkNodes = chunkNodeMap.get(chunkPos);
+        if (chunkNodes != null) {
+            chunkNodes.remove(node);
+            if (chunkNodes.isEmpty()) {
+                chunkNodeMap.remove(chunkPos);
             }
-
-            network.recomputeInterfaceNodeCache();
         }
     }
 
     private void saveToSavedData() {
-        CompoundTag tag = new CompoundTag();
-        ListTag networkList = new ListTag();
+        CompoundTag data = new CompoundTag();
+        ListTag networkTags = new ListTag();
 
         for (CableNetwork network : networks.values()) {
-            CompoundTag netTag = new CompoundTag();
-            netTag.putUUID("uuid", network.uuid);
-
-            ListTag nodesList = new ListTag();
-            for (CableNetworkNode node : network.nodes.values()) {
-                CompoundTag nodeTag = new CompoundTag();
-                nodeTag.putLong("pos", node.pos.asLong());
-                nodeTag.putBoolean("isInterface", node.isInterfaceNode);
-
-                List<Long> connections = new ArrayList<>();
-                for (CableNetworkNode connection : node.connections) {
-                    connections.add(connection.pos.asLong());
-                }
-                nodeTag.put("connections", new LongArrayTag(connections));
-
-                nodesList.add(nodeTag);
-            }
-            netTag.put("nodes", nodesList);
-            networkList.add(netTag);
+            networkTags.add(saveNetwork(network));
         }
 
-        tag.put("networks", networkList);
-        savedData.setData(tag); // marks it dirty automatically
+        data.put(NETWORKS_TAG, networkTags);
+        savedData.setData(data);
+    }
+
+    private CompoundTag saveNetwork(CableNetwork network) {
+        CompoundTag networkTag = new CompoundTag();
+        networkTag.putUUID(UUID_TAG, network.uuid);
+
+        ListTag nodeTags = new ListTag();
+        for (CableNetworkNode node : network.nodes.values()) {
+            nodeTags.add(saveNode(node));
+        }
+        networkTag.put(NODES_TAG, nodeTags);
+        return networkTag;
+    }
+
+    private CompoundTag saveNode(CableNetworkNode node) {
+        CompoundTag nodeTag = new CompoundTag();
+        nodeTag.putLong(POSITION_TAG, node.pos.asLong());
+        nodeTag.putBoolean(INTERFACE_TAG, node.isInterfaceNode);
+
+        long[] connections = new long[node.connections.size()];
+        for (int i = 0; i < node.connections.size(); i++) {
+            connections[i] = node.connections.get(i).pos.asLong();
+        }
+        nodeTag.put(CONNECTIONS_TAG, new LongArrayTag(connections));
+        return nodeTag;
     }
 
     public void setIsInterfaceNode(CableNetworkNode node, boolean isInterfaceNode) {
-        if (node != null) {
-            node.isInterfaceNode = isInterfaceNode;
-            node.parentNetwork.recomputeInterfaceNodeCache();
-            saveToSavedData();
+        if (node == null) {
+            return;
         }
+
+        node.isInterfaceNode = isInterfaceNode;
+        node.parentNetwork.recomputeInterfaceNodeCache();
+        saveToSavedData();
     }
 
     public void registerInterfacePeripheral(CableNetworkNode node, NetworkInterfaceNodePeripheral peripheral) {
@@ -134,22 +181,17 @@ public class CableNetworkManager {
     }
 
     public CableNetwork newNetwork() {
-        UUID uuid = UUID.randomUUID();
-        CableNetwork network = new CableNetwork(uuid);
-
-        networks.put(uuid, network);
-
+        CableNetwork network = new CableNetwork(UUID.randomUUID());
+        networks.put(network.uuid, network);
         saveToSavedData();
-
         return network;
     }
 
     public CableNetworkNode createNode(CableNetwork network, BlockPos position, boolean isInterface) {
         CableNetworkNode node = new CableNetworkNode(position, network, isInterface);
         network.nodes.put(position, node);
+        addNodeToIndexes(node);
         network.recomputeInterfaceNodeCache();
-        networkNodeMap.put(position, node);
-        chunkNodeMap.computeIfAbsent(new ChunkPos(position), k -> new HashSet<>()).add(node);
 
         saveToSavedData();
 
@@ -211,28 +253,19 @@ public class CableNetworkManager {
         CableNetwork originalNetwork = node.parentNetwork;
         NetworkInterfaceNodePeripheral peripheral = node.peripheral;
         node.peripheral = null;
-        if (peripheral != null) peripheral.clearNetworkNode();
+        if (peripheral != null) {
+            peripheral.clearNetworkNode();
+        }
         node.interfaceDestinations = List.of();
         List<CableNetworkNode> neighbors = new ArrayList<>(node.connections);
 
-        // disconnect all connections
         for (CableNetworkNode connection : neighbors) {
             connection.connections.remove(node);
         }
         node.connections.clear();
 
-        // Remove the node from every index before rebuilding the remaining components.
         originalNetwork.nodes.remove(node.pos);
-        networkNodeMap.remove(node.pos);
-        
-        ChunkPos chunkPos = new ChunkPos(node.pos);
-        Set<CableNetworkNode> chunkNodes = chunkNodeMap.get(chunkPos);
-        if (chunkNodes != null) {
-            chunkNodes.remove(node);
-            if (chunkNodes.isEmpty()) {
-                chunkNodeMap.remove(chunkPos);
-            }
-        }
+        removeNodeFromIndexes(node);
 
         if (originalNetwork.nodes.isEmpty()) {
             networks.remove(originalNetwork.uuid);
