@@ -2,201 +2,367 @@ package one.patriik.ccnetworks.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import one.patriik.ccnetworks.blockentity.AbstractNetworkNodeBlockEntity;
+import one.patriik.ccnetworks.client.CCNetworksClient;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import one.patriik.ccnetworks.blockentity.AbstractNetworkNodeBlockEntity;
 
 import java.util.List;
 
-// this is mostly ai generated, ive looked through it and it seems sane though
-// maybe switch to leash render type?
+// TODO: optimize, cache stuff
+// this is yet again vibecoded, buuut it doesn't seem to do anything very stupid
 public class AbstractNetworkNodeBlockEntityRenderer<T extends AbstractNetworkNodeBlockEntity> implements BlockEntityRenderer<T> {
+    private static final float CABLE_WIDTH = 0.05f;
+    private static final float CONNECTION_OFFSET = 0.315f - 0.5f;
+    private static final float MIN_CABLE_LENGTH = 0.01f;
+    private static final int CABLE_TINT = 128;
+    private static final ResourceLocation WOOL_TEXTURE = new ResourceLocation("minecraft", "block/black_wool");
+
     public AbstractNetworkNodeBlockEntityRenderer(BlockEntityRendererProvider.Context ctx) {}
 
     @Override
     public void render(T blockEntity, float partialTick, PoseStack poseStack, MultiBufferSource buffer, int packedLight, int packedOverlay) {
-        List<BlockPos> links = blockEntity.getRenderLinks();
-        BlockPos pos = blockEntity.getBlockPos();
         Level level = blockEntity.getLevel();
-        if (level == null) return;
+        List<BlockPos> links = blockEntity.getRenderLinks();
+        if (level == null || links.isEmpty()) {
+            return;
+        }
 
-        BlockState thisState = blockEntity.getBlockState();
-        Vector3f startOffset = getConnectionOffset(thisState);
+        BlockPos blockPos = blockEntity.getBlockPos();
+        Vector3f startOffset = getConnectionOffset(blockEntity.getBlockState());
+        VertexConsumer consumer = buffer.getBuffer(RenderType.solid());
+        TextureAtlasSprite woolTexture = Minecraft.getInstance()
+                .getTextureAtlas(TextureAtlas.LOCATION_BLOCKS)
+                .apply(WOOL_TEXTURE);
 
         for (BlockPos link : links) {
-            BlockState targetState = level.getBlockState(link);
-            Vector3f targetOffset = getConnectionOffset(targetState);
+            Vector3f targetOffset = getConnectionOffset(level.getBlockState(link));
+            float targetX = link.getX() - blockPos.getX() + targetOffset.x() - startOffset.x();
+            float targetY = link.getY() - blockPos.getY() + targetOffset.y() - startOffset.y();
+            float targetZ = link.getZ() - blockPos.getZ() + targetOffset.z() - startOffset.z();
+            double lengthSquared = (double) targetX * targetX + (double) targetY * targetY + (double) targetZ * targetZ;
 
-            // Calculate the relative coordinate of the target connection point from our connection point
-            float x2 = (link.getX() - pos.getX()) + targetOffset.x() - startOffset.x();
-            float y2 = (link.getY() - pos.getY()) + targetOffset.y() - startOffset.y();
-            float z2 = (link.getZ() - pos.getZ()) + targetOffset.z() - startOffset.z();
-
-            // Calculate exact straight-line distance
-            float length = Mth.sqrt(x2 * x2 + y2 * y2 + z2 * z2);
-            if (length < 0.01f) continue; // Safety against zero-length cables
+            if (lengthSquared <= MIN_CABLE_LENGTH * MIN_CABLE_LENGTH || !Double.isFinite(lengthSquared)) {
+                continue;
+            }
+            float length = (float) Math.sqrt(lengthSquared);
+            float maxCableHalfLength = CCNetworksClient.CONFIG.maxCableHalfLength;
+            if (maxCableHalfLength <= 0.0f) {
+                continue;
+            }
+            float endT = Math.min(0.5f, maxCableHalfLength / length);
+            float droop = (length * length / 4096.0f) * 2.0f;
 
             poseStack.pushPose();
-
-            // Translate to the exact starting connection point (center + offset)
             poseStack.translate(0.5 + startOffset.x(), 0.5 + startOffset.y(), 0.5 + startOffset.z());
-
-            VertexConsumer vertexConsumer = buffer.getBuffer(RenderType.solid());
-
-            // Quadratic droop: 2m drop at 64 blocks distance (64^2 = 4096)
-            float droop = ((length * length) / 4096.0f) * 2.0f;
-
-            // Dynamically scale segments based on distance, minimum 4, always an even number
-            int segments = Math.max(4, ((int) Math.ceil(length / 2.0f)) * 2);
-
-            // Render cable half-way to target (with a 256 block render limit)
-            renderHalfCable(poseStack, vertexConsumer, x2, y2, z2, length, 0.05f, droop, segments, packedLight, OverlayTexture.NO_OVERLAY);
-
+            renderHalfCable(
+                    poseStack.last(),
+                    consumer,
+                    targetX,
+                    targetY,
+                    targetZ,
+                    endT,
+                    droop,
+                    woolTexture,
+                    LightTexture.FULL_BRIGHT,
+                    OverlayTexture.NO_OVERLAY
+            );
             poseStack.popPose();
         }
     }
 
-    /**
-     * Calculates the offset from the center of the block (0.5, 0.5, 0.5)
-     * to the top of the model (0.315 from the bottom side) based on block facing.
-     */
-    private Vector3f getConnectionOffset(BlockState state) {
-        Direction facing = Direction.UP; // Default fallback
+    private static float[] createSegmentParameters(
+            Vector3f end,
+            float endT,
+            float droop,
+            float targetSegmentLength,
+            int maxSegmentsPerHalf
+    ) {
+        double arcLength = getArcLength(end, endT, droop);
+        int segmentCount = getSegmentCount(arcLength, targetSegmentLength, maxSegmentsPerHalf);
+        float[] parameters = new float[segmentCount + 1];
 
+        for (int i = 0; i <= segmentCount; i++) {
+            if (i == 0) {
+                parameters[i] = 0.0f;
+            } else if (i == segmentCount) {
+                parameters[i] = endT;
+            } else {
+                parameters[i] = getParameterAtArcLength(end, endT, droop, arcLength * i / segmentCount, arcLength);
+            }
+        }
+
+        return parameters;
+    }
+
+    private static double getArcLength(Vector3f end, double t, double droop) {
+        double horizontalLength = Math.hypot(end.x(), end.z());
+        double initialSlope = end.y() - 4.0 * droop;
+        double slopeChange = 8.0 * droop * t;
+
+        if (droop == 0.0) {
+            return Math.hypot(horizontalLength, end.y()) * t;
+        }
+
+        double finalSlope = initialSlope + slopeChange;
+        return Math.max(0.0, (
+                arcLengthPrimitive(finalSlope, horizontalLength)
+                        - arcLengthPrimitive(initialSlope, horizontalLength)
+        ) / (8.0 * droop));
+    }
+
+    private static double arcLengthPrimitive(double slope, double horizontalLength) {
+        if (horizontalLength == 0.0) {
+            return 0.5 * slope * Math.abs(slope);
+        }
+
+        double ratio = slope / horizontalLength;
+        double absoluteRatio = Math.abs(ratio);
+        double inverseHyperbolicSine = Math.copySign(
+                Math.log1p(absoluteRatio + absoluteRatio * absoluteRatio / (Math.hypot(absoluteRatio, 1.0) + 1.0)),
+                ratio
+        );
+        return 0.5 * (
+                slope * Math.hypot(horizontalLength, slope)
+                        + horizontalLength * horizontalLength * inverseHyperbolicSine
+        );
+    }
+
+    private static float getParameterAtArcLength(
+            Vector3f end,
+            double endT,
+            double droop,
+            double targetLength,
+            double totalLength
+    ) {
+        double low = 0.0;
+        double high = endT;
+        double t = endT * targetLength / totalLength;
+        double horizontalLength = Math.hypot(end.x(), end.z());
+
+        for (int i = 0; i < 16; i++) {
+            double currentLength = getArcLength(end, t, droop);
+            double error = currentLength - targetLength;
+            if (Math.abs(error) < 1.0e-5) {
+                break;
+            }
+
+            if (error < 0.0) {
+                low = t;
+            } else {
+                high = t;
+            }
+
+            double slope = end.y() - 4.0 * droop + 8.0 * droop * t;
+            double speed = Math.hypot(horizontalLength, slope);
+            double nextT = speed > 0.0 ? t - error / speed : Double.NaN;
+            if (!Double.isFinite(nextT) || nextT <= low || nextT >= high) {
+                nextT = (low + high) * 0.5;
+            }
+            if (nextT == t) {
+                break;
+            }
+            t = nextT;
+        }
+
+        return (float) Math.max(0.0, Math.min(endT, t));
+    }
+
+    private static int getSegmentCount(double arcLength, float targetSegmentLength, int maxSegmentsPerHalf) {
+        int lowerCount = Math.max(1, Math.min(
+                maxSegmentsPerHalf,
+                (int) Math.floor(arcLength / targetSegmentLength)
+        ));
+        int upperCount = Math.min(maxSegmentsPerHalf, lowerCount + 1);
+        double lowerLength = arcLength / lowerCount;
+        double upperLength = arcLength / upperCount;
+
+        return Math.abs(lowerLength - targetSegmentLength) <= Math.abs(upperLength - targetSegmentLength)
+                ? lowerCount
+                : upperCount;
+    }
+
+    private Vector3f getConnectionOffset(BlockState state) {
+        Direction facing = Direction.UP;
         if (state.hasProperty(BlockStateProperties.FACING)) {
             facing = state.getValue(BlockStateProperties.FACING);
         } else if (state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
             facing = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
         }
 
-        // If the bottom rests at 0.0, the top is at 0.315.
-        // The distance from the center (0.5) is 0.315 - 0.5 = -0.185.
-        float offsetDist = 0.315f - 0.5f;
-
         return new Vector3f(
-                facing.getStepX() * offsetDist,
-                facing.getStepY() * offsetDist,
-                facing.getStepZ() * offsetDist
+                facing.getStepX() * CONNECTION_OFFSET,
+                facing.getStepY() * CONNECTION_OFFSET,
+                facing.getStepZ() * CONNECTION_OFFSET
         );
     }
 
-    private void renderHalfCable(PoseStack poseStack, VertexConsumer consumer, float targetX, float targetY, float targetZ, float length, float width, float droopAmount, int totalSegments, int light, int overlay) {
-        float halfWidth = width / 2.0f;
-        PoseStack.Pose entry = poseStack.last();
-        Matrix4f positionMatrix = entry.pose();
-        Matrix3f normalMatrix = entry.normal();
-
-        Vector3f start = new Vector3f(0, 0, 0);
+    private void renderHalfCable(
+            PoseStack.Pose pose,
+            VertexConsumer consumer,
+            float targetX,
+            float targetY,
+            float targetZ,
+            float endT,
+            float droop,
+            TextureAtlasSprite texture,
+            int light,
+            int overlay
+    ) {
+        Matrix4f positionMatrix = pose.pose();
+        Matrix3f normalMatrix = pose.normal();
         Vector3f end = new Vector3f(targetX, targetY, targetZ);
+        Vector3f point = new Vector3f();
+        Vector3f nextPoint = new Vector3f();
+        Vector3f previousPoint = new Vector3f();
+        Vector3f forward = new Vector3f();
+        Vector3f right = new Vector3f();
+        Vector3f up = new Vector3f();
+        Vector3f edgeA = new Vector3f();
+        Vector3f edgeB = new Vector3f();
+        Vector3f normal = new Vector3f();
+        float[] parameters = createSegmentParameters(
+                end,
+                endT,
+                droop,
+                CCNetworksClient.CONFIG.targetCableSegmentLength,
+                CCNetworksClient.CONFIG.maxSegmentsPerHalf
+        );
+        int segmentCount = parameters.length - 1;
+        Vector3f[] previousCorners = createCorners();
+        Vector3f[] currentCorners = createCorners();
+        float halfWidth = CABLE_WIDTH * 0.5f;
 
-        // We only iterate up to half the segments so we only draw the first 50% of the cable length
-        int halfSegments = totalSegments / 2;
-
-        // SAFETY CATCH: Render only up to 256 blocks away from this node
-        int segmentsToDraw = halfSegments;
-        if (length > 0) {
-            int maxSafeSegments = (int) Math.ceil(totalSegments * (256.0f / length));
-            segmentsToDraw = Math.min(halfSegments, maxSafeSegments);
-        }
-
-        Vector3f previousPoint = new Vector3f(start);
-        Vector3f[] prevCorners = new Vector3f[4];
-
-        for (int i = 0; i <= segmentsToDraw; i++) {
-            float t = (float) i / totalSegments;
-            Vector3f currentPoint = getPointOnCable(start, end, t, droopAmount);
-
-            // Calculate the forward direction for normal generation
-            Vector3f forward;
-            if (i < totalSegments) {
-                Vector3f nextPoint = getPointOnCable(start, end, t + 0.01f, droopAmount);
-                forward = new Vector3f(nextPoint).sub(currentPoint).normalize();
-            } else {
-                forward = new Vector3f(currentPoint).sub(previousPoint).normalize();
-            }
-
-            // Calculate 'Right' and 'Up' vectors for the cross-section
-            Vector3f globalUp = new Vector3f(0, 1, 0);
-            if (Math.abs(forward.y()) > 0.99f) {
-                globalUp = new Vector3f(1, 0, 0); // Handle perfectly vertical cables
-            }
-
-            Vector3f right = new Vector3f(forward).cross(globalUp).normalize();
-            Vector3f up = new Vector3f(right).cross(forward).normalize();
-
-            // 4 corners of the square cross-section around the center
-            Vector3f rW = new Vector3f(right).mul(halfWidth);
-            Vector3f uW = new Vector3f(up).mul(halfWidth);
-
-            Vector3f[] currentCorners = new Vector3f[]{
-                    new Vector3f(currentPoint).add(rW).add(uW),
-                    new Vector3f(currentPoint).add(rW).sub(uW),
-                    new Vector3f(currentPoint).sub(rW).sub(uW),
-                    new Vector3f(currentPoint).sub(rW).add(uW)
-            };
+        for (int i = 0; i <= segmentCount; i++) {
+            float t = parameters[i];
+            getPointOnCable(end, t, droop, point);
 
             if (i == 0) {
-                // Cap off the start of the cable (t = 0) to hide the hollow inside
-                Vector3f capNormal = new Vector3f(forward).mul(-1); // Facing backwards
-                // Drawn in reverse order (3, 2, 1, 0) for correct backface culling
-                addVertex(consumer, positionMatrix, normalMatrix, currentCorners[3], capNormal, light, overlay);
-                addVertex(consumer, positionMatrix, normalMatrix, currentCorners[2], capNormal, light, overlay);
-                addVertex(consumer, positionMatrix, normalMatrix, currentCorners[1], capNormal, light, overlay);
-                addVertex(consumer, positionMatrix, normalMatrix, currentCorners[0], capNormal, light, overlay);
+                getPointOnCable(end, parameters[i + 1], droop, nextPoint);
+                forward.set(nextPoint).sub(point);
+            } else if (i == segmentCount) {
+                forward.set(point).sub(previousPoint);
             } else {
-                // Draw quads connecting the previous segment to the current segment
-                for (int j = 0; j < 4; j++) {
-                    int nextJ = (j + 1) % 4;
+                getPointOnCable(end, parameters[i + 1], droop, nextPoint);
+                forward.set(nextPoint).sub(previousPoint);
+            }
 
-                    Vector3f p1 = prevCorners[j];
-                    Vector3f p2 = prevCorners[nextJ];
-                    Vector3f p3 = currentCorners[nextJ];
-                    Vector3f p4 = currentCorners[j];
+            if (forward.lengthSquared() < 1.0e-8f) {
+                forward.set(end);
+            }
+            forward.normalize();
+            fillCorners(point, forward, right, up, halfWidth, currentCorners);
 
-                    // Calculate face normal
-                    Vector3f v1 = new Vector3f(p2).sub(p1);
-                    Vector3f v2 = new Vector3f(p4).sub(p1);
-                    Vector3f normal = v1.cross(v2).normalize();
+            if (i == 0) {
+                normal.set(forward).negate();
+                addVertex(consumer, positionMatrix, normalMatrix, currentCorners[3], normal, texture, 0.0f, 16.0f, light, overlay);
+                addVertex(consumer, positionMatrix, normalMatrix, currentCorners[2], normal, texture, 16.0f, 16.0f, light, overlay);
+                addVertex(consumer, positionMatrix, normalMatrix, currentCorners[1], normal, texture, 16.0f, 0.0f, light, overlay);
+                addVertex(consumer, positionMatrix, normalMatrix, currentCorners[0], normal, texture, 0.0f, 0.0f, light, overlay);
+            } else {
+                for (int side = 0; side < 4; side++) {
+                    int nextSide = (side + 1) % 4;
+                    Vector3f first = previousCorners[side];
+                    Vector3f second = previousCorners[nextSide];
+                    Vector3f fourth = currentCorners[side];
 
-                    addVertex(consumer, positionMatrix, normalMatrix, p1, normal, light, overlay);
-                    addVertex(consumer, positionMatrix, normalMatrix, p2, normal, light, overlay);
-                    addVertex(consumer, positionMatrix, normalMatrix, p3, normal, light, overlay);
-                    addVertex(consumer, positionMatrix, normalMatrix, p4, normal, light, overlay);
+                    edgeA.set(second).sub(first);
+                    edgeB.set(fourth).sub(first);
+                    normal.set(edgeA).cross(edgeB).normalize();
+
+                    addVertex(consumer, positionMatrix, normalMatrix, first, normal, texture, 0.0f, 0.0f, light, overlay);
+                    addVertex(consumer, positionMatrix, normalMatrix, second, normal, texture, 16.0f, 0.0f, light, overlay);
+                    addVertex(consumer, positionMatrix, normalMatrix, currentCorners[nextSide], normal, texture, 16.0f, 16.0f, light, overlay);
+                    addVertex(consumer, positionMatrix, normalMatrix, fourth, normal, texture, 0.0f, 16.0f, light, overlay);
                 }
             }
 
-            prevCorners = currentCorners;
-            previousPoint = currentPoint;
+            Vector3f[] swap = previousCorners;
+            previousCorners = currentCorners;
+            currentCorners = swap;
+            previousPoint.set(point);
         }
     }
 
-    private Vector3f getPointOnCable(Vector3f start, Vector3f end, float t, float droopAmount) {
-        float x = Mth.lerp(t, start.x(), end.x());
-        float z = Mth.lerp(t, start.z(), end.z());
-        float linearY = Mth.lerp(t, start.y(), end.y());
-
-        // Parabolic droop equation: 0 at t=0 and t=1, max depth at t=0.5
-        float droopOffset = droopAmount * 4 * t * (1 - t);
-
-        return new Vector3f(x, linearY - droopOffset, z);
+    private static Vector3f[] createCorners() {
+        return new Vector3f[]{new Vector3f(), new Vector3f(), new Vector3f(), new Vector3f()};
     }
 
-    private void addVertex(VertexConsumer consumer, Matrix4f posMatrix, Matrix3f normalMatrix, Vector3f pos, Vector3f normal, int light, int overlay) {
-        consumer.vertex(posMatrix, pos.x(), pos.y(), pos.z())
-                .color(80, 80, 80, 255)
-                .uv(0, 0)
+    private static void fillCorners(
+            Vector3f point,
+            Vector3f forward,
+            Vector3f right,
+            Vector3f up,
+            float halfWidth,
+            Vector3f[] corners
+    ) {
+        if (Math.abs(forward.y()) > 0.99f) {
+            right.set(forward).cross(1.0f, 0.0f, 0.0f);
+        } else {
+            right.set(forward).cross(0.0f, 1.0f, 0.0f);
+        }
+        right.normalize();
+        up.set(right).cross(forward).normalize();
+
+        corners[0].set(point).add(
+                (right.x() + up.x()) * halfWidth,
+                (right.y() + up.y()) * halfWidth,
+                (right.z() + up.z()) * halfWidth
+        );
+        corners[1].set(point).add(
+                (right.x() - up.x()) * halfWidth,
+                (right.y() - up.y()) * halfWidth,
+                (right.z() - up.z()) * halfWidth
+        );
+        corners[2].set(point).add(
+                (-right.x() - up.x()) * halfWidth,
+                (-right.y() - up.y()) * halfWidth,
+                (-right.z() - up.z()) * halfWidth
+        );
+        corners[3].set(point).add(
+                (-right.x() + up.x()) * halfWidth,
+                (-right.y() + up.y()) * halfWidth,
+                (-right.z() + up.z()) * halfWidth
+        );
+    }
+
+    private static void getPointOnCable(Vector3f end, float t, float droop, Vector3f result) {
+        float sag = droop * 4.0f * t * (1.0f - t);
+        result.set(end.x() * t, end.y() * t - sag, end.z() * t);
+    }
+
+    private static void addVertex(
+            VertexConsumer consumer,
+            Matrix4f positionMatrix,
+            Matrix3f normalMatrix,
+            Vector3f position,
+            Vector3f normal,
+            TextureAtlasSprite texture,
+            float u,
+            float v,
+            int light,
+            int overlay
+    ) {
+        consumer.vertex(positionMatrix, position.x(), position.y(), position.z())
+                .color(CABLE_TINT, CABLE_TINT, CABLE_TINT, 255)
+                .uv(texture.getU(u), texture.getV(v))
                 .overlayCoords(overlay)
                 .uv2(light)
                 .normal(normalMatrix, normal.x(), normal.y(), normal.z())
@@ -210,6 +376,6 @@ public class AbstractNetworkNodeBlockEntityRenderer<T extends AbstractNetworkNod
 
     @Override
     public int getViewDistance() {
-        return 256;
+        return Mth.ceil(CCNetworksClient.CONFIG.maxNodeRenderDistance);
     }
 }
