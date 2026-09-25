@@ -27,6 +27,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 
 public class FiberOpticCable extends Item {
+    private static final int MAX_REFUND_CABLES = 4096;
+
     public FiberOpticCable(Properties properties) {
         super(properties);
     }
@@ -119,21 +121,30 @@ public class FiberOpticCable extends Item {
                             clearSelection(stack, tag);
 
                             if (!player.isCreative()) {
-                                double distRound = Math.round(Math.sqrt(nodeBE1.getBlockPos().distSqr(nodeBE.getBlockPos())));
+                                long cableCount = Math.round(Math.sqrt(nodeBE1.getBlockPos().distSqr(nodeBE.getBlockPos())));
+                                int refundCount = (int) Math.min(cableCount, MAX_REFUND_CABLES);
+                                int remaining = refundCount;
 
-                                while (distRound > 0) {
-                                    int amt = (int) Math.min(64, distRound);
+                                while (remaining > 0) {
+                                    int amt = Math.min(64, remaining);
 
                                     ItemStack itemStack = new ItemStack(Registration.ModItems.FIBER_OPTIC_CABLE, amt);
 
-                                    boolean inserted = player.getInventory().add(itemStack);
+                                    player.getInventory().add(itemStack);
 
                                     if (!itemStack.isEmpty()) {
                                         ItemEntity item = new ItemEntity(level, player.getX(), player.getY(), player.getZ(), itemStack);
                                         level.addFreshEntity(item);
                                     }
 
-                                    distRound -= amt;
+                                    remaining -= amt;
+                                }
+
+                                if (cableCount > refundCount) {
+                                    player.sendSystemMessage(Component.literal(
+                                            "Refund capped at " + MAX_REFUND_CABLES + " cables; "
+                                                    + (cableCount - refundCount) + " cables were not refunded"
+                                    ));
                                 }
                             }
 
