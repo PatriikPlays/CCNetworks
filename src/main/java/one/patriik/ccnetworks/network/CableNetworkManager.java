@@ -157,6 +157,10 @@ public class CableNetworkManager {
     }
 
     public void connectNodes(CableNetworkNode nodeA, CableNetworkNode nodeB) {
+        if (!isManagedNode(nodeA) || !isManagedNode(nodeB)) {
+            throw new IllegalArgumentException("Cannot connect nodes that are not managed by this network manager");
+        }
+
         if (nodeA.pos.equals(nodeB.pos)) {
             CCNetworks.LOGGER.warn("Tried to connect node to itself");
             return;
@@ -189,7 +193,6 @@ public class CableNetworkManager {
         for (Map.Entry<BlockPos, CableNetworkNode> entry : networkThatWillBeDestroyed.nodes.entrySet()) {
             entry.getValue().parentNetwork = networkThatWillKeepExisting;
             networkThatWillKeepExisting.nodes.put(entry.getKey(), entry.getValue());
-            networkNodeMap.remove(entry.getKey());
             networkNodeMap.put(entry.getKey(), entry.getValue());
         }
 
@@ -200,7 +203,12 @@ public class CableNetworkManager {
         saveToSavedData();
     }
 
-    public void removeNode(CableNetworkNode node) { // this can be optimized way better i think
+    public void removeNode(CableNetworkNode node) {
+        if (!isManagedNode(node)) {
+            return;
+        }
+
+        CableNetwork originalNetwork = node.parentNetwork;
         NetworkInterfaceNodePeripheral peripheral = node.peripheral;
         node.peripheral = null;
         if (peripheral != null) peripheral.clearNetworkNode();
@@ -213,8 +221,8 @@ public class CableNetworkManager {
         }
         node.connections.clear();
 
-        // remove from nodes, remove network and return if empty
-        node.parentNetwork.nodes.remove(node.pos);
+        // Remove the node from every index before rebuilding the remaining components.
+        originalNetwork.nodes.remove(node.pos);
         networkNodeMap.remove(node.pos);
         
         ChunkPos chunkPos = new ChunkPos(node.pos);
@@ -226,71 +234,74 @@ public class CableNetworkManager {
             }
         }
 
-        if (node.parentNetwork.nodes.isEmpty()) {
-            networks.remove(node.parentNetwork.uuid);
+        if (originalNetwork.nodes.isEmpty()) {
+            networks.remove(originalNetwork.uuid);
             saveToSavedData();
             return;
         }
 
-        List<Set<CableNetworkNode>> bfsList = new ArrayList<>();
-        for (CableNetworkNode neighbor : neighbors) {
-            bfsList.add(listNetworkBFS(neighbor));
-        }
-
-        List<Set<CableNetworkNode>> filtered = new ArrayList<>();
-        for (Set<CableNetworkNode> bfs : bfsList) {
-            boolean foundDuplicate = false;
-            for (Set<CableNetworkNode> f : filtered) {
-                if (bfs.contains(f.iterator().next())) {
-                    foundDuplicate = true;
-                    break;
-                }
-            }
-            if (!foundDuplicate) filtered.add(bfs);
-        }
-
-        for (Set<CableNetworkNode> f : filtered) {
-            CableNetwork net = newNetwork();
-            for (CableNetworkNode n : f) {
-                n.parentNetwork.nodes.remove(n.pos);
-                if (n.parentNetwork.nodes.isEmpty()) networks.remove(n.parentNetwork.uuid);
-                n.parentNetwork = net;
-                net.nodes.put(n.pos, n);
-            }
-
-            net.recomputeInterfaceNodeCache();
-        }
-
-        // the original network should always be deleted unless i fucked something up, so no need to recompute that
-
+        splitNetwork(originalNetwork);
         saveToSavedData();
     }
 
     public void unlinkNodes(CableNetworkNode nodeA, CableNetworkNode nodeB) {
+        if (!isManagedNode(nodeA) || !isManagedNode(nodeB)) {
+            throw new IllegalArgumentException("Cannot unlink nodes that are not managed by this network manager");
+        }
+
         nodeA.connections.remove(nodeB);
         nodeB.connections.remove(nodeA);
 
-        Set<CableNetworkNode> bfsA = listNetworkBFS(nodeA);
-        if (!bfsA.contains(nodeB)) {
-            CableNetwork net = newNetwork();
-
-            for (CableNetworkNode n : bfsA) {
-                n.parentNetwork.nodes.remove(n.pos);
-                if (n.parentNetwork.nodes.isEmpty()) networks.remove(n.parentNetwork.uuid);
-                n.parentNetwork = net;
-                net.nodes.put(n.pos, n);
-            }
-        }
-
-        if (networks.containsKey(nodeA.parentNetwork.uuid)) {
-            networks.get(nodeA.parentNetwork.uuid).recomputeInterfaceNodeCache();
-        }
-
-        if (networks.containsKey(nodeB.parentNetwork.uuid)) {
-            networks.get(nodeB.parentNetwork.uuid).recomputeInterfaceNodeCache();
+        if (nodeA.parentNetwork == nodeB.parentNetwork) {
+            splitNetwork(nodeA.parentNetwork);
+        } else {
+            nodeA.parentNetwork.recomputeInterfaceNodeCache();
+            nodeB.parentNetwork.recomputeInterfaceNodeCache();
         }
 
         saveToSavedData();
+    }
+
+    private boolean isManagedNode(CableNetworkNode node) {
+        return node != null
+            && networkNodeMap.get(node.pos) == node
+            && networks.get(node.parentNetwork.uuid) == node.parentNetwork
+            && node.parentNetwork.nodes.get(node.pos) == node;
+    }
+
+    private void splitNetwork(CableNetwork network) {
+        Set<CableNetworkNode> remaining = new HashSet<>(network.nodes.values());
+        List<Set<CableNetworkNode>> components = new ArrayList<>();
+
+        while (!remaining.isEmpty()) {
+            CableNetworkNode start = remaining.iterator().next();
+            Set<CableNetworkNode> component = listNetworkBFS(start);
+            component.retainAll(remaining);
+            remaining.removeAll(component);
+            components.add(component);
+        }
+
+        if (components.size() == 1) {
+            network.recomputeInterfaceNodeCache();
+            return;
+        }
+
+        network.nodes.clear();
+        for (CableNetworkNode node : components.get(0)) {
+            node.parentNetwork = network;
+            network.nodes.put(node.pos, node);
+        }
+        network.recomputeInterfaceNodeCache();
+
+        for (int i = 1; i < components.size(); i++) {
+            CableNetwork split = new CableNetwork(UUID.randomUUID());
+            networks.put(split.uuid, split);
+            for (CableNetworkNode node : components.get(i)) {
+                node.parentNetwork = split;
+                split.nodes.put(node.pos, node);
+            }
+            split.recomputeInterfaceNodeCache();
+        }
     }
 
     // todo: somehow send block updates to all nodes connected to the removed node?
