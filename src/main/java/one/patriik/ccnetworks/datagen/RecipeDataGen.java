@@ -1,30 +1,26 @@
 package one.patriik.ccnetworks.datagen;
 
 import dan200.computercraft.api.ComputerCraftTags;
-import dan200.computercraft.shared.peripheral.modem.wired.CableBlockItem;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricRecipeProvider;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.data.recipes.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
-import net.minecraft.tags.TagKey;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.SmeltingRecipe;
 import one.patriik.ccnetworks.CCNetworks;
 import one.patriik.ccnetworks.Registration;
 
-import java.util.function.Consumer;
+import java.util.concurrent.CompletableFuture;
 
 public class RecipeDataGen extends FabricRecipeProvider {
-    public RecipeDataGen(FabricDataOutput output) {
-        super(output);
+    public RecipeDataGen(FabricDataOutput output, CompletableFuture<HolderLookup.Provider> registriesFuture) {
+        super(output, registriesFuture);
     }
 
     @Override
-    public void buildRecipes(Consumer<FinishedRecipe> consumer) {
+    public void buildRecipes(RecipeOutput consumer) {
         ShapedRecipeBuilder.shaped(RecipeCategory.REDSTONE, Registration.ModItems.FIBER_OPTIC_CABLE, 64)
                 .pattern(" W ")
                 .pattern("FFF")
@@ -32,7 +28,7 @@ public class RecipeDataGen extends FabricRecipeProvider {
                 .define('F', Registration.ModBlocks.FUSED_SILICA)
                 .define('W', ItemTags.WOOL)
                 .unlockedBy("has_fused_silica", has(Registration.ModBlocks.FUSED_SILICA))
-                .save(consumer, new ResourceLocation(CCNetworks.MOD_ID, "fiber_optic_cable_from_wool"));
+                .save(consumer, ResourceLocation.fromNamespaceAndPath(CCNetworks.MOD_ID, "fiber_optic_cable_from_wool"));
         ShapedRecipeBuilder.shaped(RecipeCategory.REDSTONE, Registration.ModItems.FIBER_OPTIC_CABLE, 64)
                 .pattern("SSS")
                 .pattern("FFF")
@@ -40,7 +36,7 @@ public class RecipeDataGen extends FabricRecipeProvider {
                 .define('F', Registration.ModBlocks.FUSED_SILICA)
                 .define('S', Items.STRING)
                 .unlockedBy("has_fused_silica", has(Registration.ModBlocks.FUSED_SILICA))
-                .save(consumer, new ResourceLocation(CCNetworks.MOD_ID, "fiber_optic_cable_from_string"));
+                .save(consumer, ResourceLocation.fromNamespaceAndPath(CCNetworks.MOD_ID, "fiber_optic_cable_from_string"));
 
         ShapedRecipeBuilder.shaped(RecipeCategory.REDSTONE, Registration.ModBlocks.NETWORK_NODE)
                 .pattern(" F ")
@@ -73,7 +69,7 @@ public class RecipeDataGen extends FabricRecipeProvider {
                 0.1F,
                 200
         ).unlockedBy("has_silica_blend", has(Registration.ModBlocks.SILICA_BLEND))
-        .save(consumer, new ResourceLocation(one.patriik.ccnetworks.CCNetworks.MOD_ID, "fused_silica_from_smelting_silica_blend"));
+        .save(consumer, ResourceLocation.fromNamespaceAndPath(CCNetworks.MOD_ID, "fused_silica_from_smelting_silica_blend"));
         SimpleCookingRecipeBuilder.blasting(
                 Ingredient.of(Registration.ModBlocks.SILICA_BLEND),
                 RecipeCategory.MISC,
@@ -81,6 +77,6 @@ public class RecipeDataGen extends FabricRecipeProvider {
                 0.1F,
                 100
         ).unlockedBy("has_silica_blend", has(Registration.ModBlocks.SILICA_BLEND))
-        .save(consumer, new ResourceLocation(one.patriik.ccnetworks.CCNetworks.MOD_ID, "fused_silica_from_blasting_silica_blend"));
+        .save(consumer, ResourceLocation.fromNamespaceAndPath(CCNetworks.MOD_ID, "fused_silica_from_blasting_silica_blend"));
     }
 }

@@ -2,11 +2,14 @@ package one.patriik.ccnetworks.datagen;
 
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricBlockLootTableProvider;
+import net.minecraft.core.HolderLookup;
 import one.patriik.ccnetworks.Registration;
 
+import java.util.concurrent.CompletableFuture;
+
 public class LootTableDataGen extends FabricBlockLootTableProvider {
-    protected LootTableDataGen(FabricDataOutput dataOutput) {
-        super(dataOutput);
+    protected LootTableDataGen(FabricDataOutput dataOutput, CompletableFuture<HolderLookup.Provider> registriesFuture) {
+        super(dataOutput, registriesFuture);
     }
 
     @Override
