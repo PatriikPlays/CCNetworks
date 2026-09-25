@@ -340,17 +340,19 @@ public class CableNetworkManager {
     // todo: somehow send block updates to all nodes connected to the removed node?
     public void removeOrphanedNodesInChunk(LevelChunk chunk) {
         ChunkPos chunkPos = chunk.getPos();
+        Set<CableNetworkNode> chunkNodes = chunkNodeMap.get(chunkPos);
+        if (chunkNodes == null) {
+            return;
+        }
+
         List<CableNetworkNode> toRemove = new ArrayList<>();
 
-        Set<CableNetworkNode> chunkNodes = chunkNodeMap.get(chunkPos);
-        if (chunkNodes != null) {
-            for (CableNetworkNode node : chunkNodes) {
-                BlockEntity blockEntity = chunk.getBlockEntity(node.pos);
-                if (!(blockEntity instanceof AbstractNetworkNodeBlockEntity)) {
-                    toRemove.add(node);
-                } else {
-                    CCNetworks.LOGGER.trace("Found valid network node at {} in chunk {}, skipping", node.pos, chunkPos);
-                }
+        for (CableNetworkNode node : chunkNodes) {
+            BlockEntity blockEntity = chunk.getBlockEntity(node.pos);
+            if (!(blockEntity instanceof AbstractNetworkNodeBlockEntity nodeBlockEntity)) {
+                toRemove.add(node);
+            } else if (node.isInterfaceNode != nodeBlockEntity.isInterfaceNode()) {
+                setIsInterfaceNode(node, nodeBlockEntity.isInterfaceNode());
             }
         }
 

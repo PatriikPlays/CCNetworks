@@ -31,7 +31,7 @@ public class NetworkInterfaceNodeBlockEntity extends AbstractNetworkNodeBlockEnt
     }
 
     @Override
-    protected boolean isInterfaceNode() {
+    public boolean isInterfaceNode() {
         return true;
     }
 }

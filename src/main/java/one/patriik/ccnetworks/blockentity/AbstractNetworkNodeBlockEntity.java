@@ -64,7 +64,7 @@ public abstract class AbstractNetworkNodeBlockEntity extends BlockEntity {
         }
     }
 
-    protected boolean isInterfaceNode() {
+    public boolean isInterfaceNode() {
         return false;
     }
 
