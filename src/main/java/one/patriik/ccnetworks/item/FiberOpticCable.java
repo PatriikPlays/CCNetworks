@@ -25,8 +25,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 
 public class FiberOpticCable extends Item {
-    private static final int MAX_REFUND_CABLES = 4096;
-
     public FiberOpticCable(Properties properties) {
         super(properties);
     }
@@ -118,8 +116,8 @@ public class FiberOpticCable extends Item {
                             clearSelection(stack, tag);
 
                             if (!player.isCreative()) {
-                                long cableCount = Math.round(Math.sqrt(nodeBE1.getBlockPos().distSqr(nodeBE.getBlockPos())));
-                                int refundCount = (int) Math.min(cableCount, MAX_REFUND_CABLES);
+                                int cableCount = getCableCount(nodeBE1.getBlockPos(), nodeBE.getBlockPos());
+                                int refundCount = Math.min(cableCount, CCNetworks.CONFIG.maxCableRefund);
                                 int remaining = refundCount;
 
                                 while (remaining > 0) {
@@ -139,7 +137,7 @@ public class FiberOpticCable extends Item {
 
                                 if (cableCount > refundCount) {
                                     player.sendSystemMessage(Component.literal(
-                                        "Refund capped at " + MAX_REFUND_CABLES + " cables; "
+                                        "Refund capped at " + CCNetworks.CONFIG.maxCableRefund + " cables; "
                                             + (cableCount - refundCount) + " cables were not refunded"
                                     ));
                                 }
@@ -154,16 +152,16 @@ public class FiberOpticCable extends Item {
                             return InteractionResult.sidedSuccess(level.isClientSide());
                         }
 
-                        double distRound = Math.round(Math.sqrt(nodeBE1.getBlockPos().distSqr(nodeBE.getBlockPos())));
+                        int cableCount = getCableCount(nodeBE1.getBlockPos(), nodeBE.getBlockPos());
 
-                        if (distRound > CCNetworks.CONFIG.maxCableLength) {
+                        if (cableCount > CCNetworks.CONFIG.maxCableLength) {
                             player.sendSystemMessage(Component.literal("Failed to link: cable too long, limit is "+CCNetworks.CONFIG.maxCableLength));
                             clearSelection(stack, tag);
                             return InteractionResult.sidedSuccess(level.isClientSide());
                         }
 
                         if (!player.isCreative()) {
-                            int cost = (int) distRound;
+                            int cost = cableCount;
                             int available = 0;
                             for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
                                 ItemStack invStack = player.getInventory().getItem(i);
@@ -181,7 +179,7 @@ public class FiberOpticCable extends Item {
                         clearSelection(stack, tag);
 
                         if (!player.isCreative()) {
-                            consumeCablesFromInventory(player, (int) distRound, stack);
+                            consumeCablesFromInventory(player, cableCount, stack);
                         }
                         nm.connectNodes(node1, node2);
                         nodeBE.update();
@@ -207,6 +205,10 @@ public class FiberOpticCable extends Item {
         if (tag.isEmpty()) {
             stack.setTag(null);
         }
+    }
+
+    public static int getCableCount(BlockPos pos1, BlockPos pos2) {
+        return (int) Math.round(Math.sqrt(pos1.distSqr(pos2)));
     }
 
     @Override

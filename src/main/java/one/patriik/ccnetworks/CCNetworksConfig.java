@@ -13,6 +13,10 @@ public class CCNetworksConfig extends WrappedConfig {
     @IntegerRange(min=0, max=Integer.MAX_VALUE)
     public int maxCableLength = 64;
 
+    @Comment("Max amount of cables refunded by unlinking nodes or breaking a node")
+    @IntegerRange(min=1, max=Integer.MAX_VALUE)
+    public int maxCableRefund = 4096;
+
     //@Comment("If enabled, this prevents players from connecting cables through solid blocks")
     //public boolean doCableCollisionChecking = true;
 
