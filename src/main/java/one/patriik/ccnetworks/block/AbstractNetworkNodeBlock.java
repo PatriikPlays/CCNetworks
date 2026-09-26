@@ -2,8 +2,13 @@ package one.patriik.ccnetworks.block;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
@@ -17,7 +22,9 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import one.patriik.ccnetworks.CCNetworks;
+import one.patriik.ccnetworks.Registration;
 import one.patriik.ccnetworks.blockentity.AbstractNetworkNodeBlockEntity;
+import one.patriik.ccnetworks.item.FiberOpticCable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -60,6 +67,42 @@ public abstract class AbstractNetworkNodeBlock extends BaseEntityBlock {
             case WEST -> Shapes.box(11/16d, 6/16d, 6/16d, 16/16d, 10/16d, 10/16d);
             case EAST -> Shapes.box(0/16d, 6/16d, 6/16d, 5/16d, 10/16d, 10/16d);
         };
+    }
+
+    @Override
+    public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+        if (!level.isClientSide()
+                && !player.isCreative()
+                && level.getGameRules().getBoolean(GameRules.RULE_DOBLOCKDROPS)) {
+            BlockEntity be = level.getBlockEntity(pos);
+            if (be instanceof AbstractNetworkNodeBlockEntity nodeBE) {
+                var networkNode = nodeBE.getNetworkNode();
+                if (networkNode != null) {
+                    long cableCount = 0;
+                    for (var connection : networkNode.connections) {
+                        cableCount += FiberOpticCable.getCableCount(pos, connection.pos);
+                    }
+
+                    int refundCount = (int) Math.min(cableCount, CCNetworks.CONFIG.maxCableRefund);
+                    int remaining = refundCount;
+                    while (remaining > 0) {
+                        int amount = Math.min(64, remaining);
+                        ItemStack cableStack = new ItemStack(Registration.ModItems.FIBER_OPTIC_CABLE, amount);
+                        Block.popResource(level, pos, cableStack);
+                        remaining -= amount;
+                    }
+
+                    if (cableCount > refundCount) {
+                        player.sendSystemMessage(Component.literal(
+                                "Refund capped at " + CCNetworks.CONFIG.maxCableRefund + " cables; "
+                                        + (cableCount - refundCount) + " cables were not refunded"
+                        ));
+                    }
+                }
+            }
+        }
+
+        return super.playerWillDestroy(level, pos, state, player);
     }
 
     @Override
